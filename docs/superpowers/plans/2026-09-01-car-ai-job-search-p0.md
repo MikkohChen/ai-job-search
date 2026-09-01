@@ -128,7 +128,7 @@ owner: "MIKKOH Chen"
 - [x] Run focused tests and confirm missing-service/CLI failures.
 - [x] Implement the append-only ledger, quarantine state, contract validation, and release metadata.
 - [x] Re-run focused and full suites.
-- [ ] Commit as `feat(events): add replay-safe outcomes and release CLI`.
+- [x] Commit as `feat(events): add replay-safe outcomes and release CLI`.
 
 ### Task 6: CI, n8n Contract, Dry Run, and Acceptance Audit
 
@@ -143,12 +143,12 @@ owner: "MIKKOH Chen"
 - Consumes: repository contracts and synthetic golden fixtures.
 - Produces: least-privilege SHA-pinned CI, credential-free inactive n8n workflow, dry-run package/approval/event evidence, and AC-01–AC-70 accounting.
 
-- [ ] Write failing policy tests for CI pins/permissions, workflow secret fields, canonical-write/send APIs, and dry-run replay.
-- [ ] Run focused tests and confirm failures against existing workflow/missing export.
-- [ ] Harden CI and add the inactive, credential-free validation/dedup/quarantine routing contract.
-- [ ] Run build, full tests, contract lint, compileall, `validate --all`, release packaging, security guards, and diff/secret scans.
-- [ ] Record failed/unverified environment gates without converting them to passes.
-- [ ] Commit as `ci(car-runtime): enforce P0 release gates`.
+- [x] Write failing policy tests for CI pins/permissions, workflow secret fields, canonical-write/send APIs, and dry-run replay.
+- [x] Run focused tests and confirm failures against existing workflow/missing export.
+- [x] Harden CI and add the inactive, credential-free validation/dedup/quarantine routing contract.
+- [x] Run build, full tests, contract lint, compileall, `validate --all`, release packaging, security guards, and diff/secret scans.
+- [x] Record failed/unverified environment gates without converting them to passes.
+- [x] Commit as `ci(car-runtime): enforce P0 release gates`.
 
 ### Task 7: M09 Gate Decision
 
@@ -159,5 +159,5 @@ owner: "MIKKOH Chen"
 - Consumes: P0 release decision.
 - Produces: explicit M09 start or defer decision.
 
-- [ ] If every P0 hard gate passes, create a separate M09 plan.
-- [ ] If repository privacy or another hard gate fails, record M09 as deferred and do not implement it.
+- [x] If every P0 hard gate passes, create a separate M09 plan. Not applicable: P0 release is `NO-GO`.
+- [x] If repository privacy or another hard gate fails, record M09 as deferred and do not implement it.

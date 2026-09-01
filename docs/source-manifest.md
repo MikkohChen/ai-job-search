@@ -20,6 +20,16 @@ owner: "MIKKOH Chen"
 | Permitted scope | Generic runtime, synthetic fixtures, local tests, credential-free workflow export |
 | Prohibited scope | Real CAR projections, resumes, contact/salary data, secrets, live external writes |
 
+## Verified Repository State
+
+| Field | Value |
+|---|---|
+| Worktree | `/Users/mikkohchen/Developer/mkkh-labs/ai-job-search-car-p0` |
+| Branch | `codex/car-ai-job-search-p0` |
+| P0 code commit | `b5e38271c53c8fe08fd5754adf2d3f9b9358b322` |
+| Origin | `MikkohChen/ai-job-search` — `PUBLIC` |
+| Origin default branch | `master` |
+
 ## Sources
 
 | Source | Version / identity | SHA-256 / commit | Authority | State |
@@ -63,12 +73,8 @@ owner: "MIKKOH Chen"
 
 ## Open Gaps
 
-| ID | Class | Gap | Owner | Exact resolution |
-|---|---|---|---|---|
-| O-01 | `BLOCK_RELEASE` | Repository visibility is public | MIKKOH Chen | Move the personal runtime to a confirmed private repository before admitting real CAR data |
-| O-02 | `PROVE_NOW` | Exact CAR export interface is unavailable | MIKKOH Chen | Provide a versioned, minimum-necessary CAR export contract in a private environment |
-| O-03 | `PROVE_NOW` | n8n instance topology and credentials are unavailable | MIKKOH Chen | Import the credential-free workflow into the authorized instance and run a replay test |
-| O-04 | `PROVE_NOW` | Linear and Notion connectors are unavailable | MIKKOH Chen | Bind approved test destinations and verify no canonical-write capability |
+The canonical open-item ledger is `docs/launch-report.md`. It contains `[O-01]` through
+`[O-08]` with owner, exact verification, and release impact; this manifest does not fork it.
 
 ## Decisions
 

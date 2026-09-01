@@ -14,11 +14,11 @@ owner: "MIKKOH Chen"
 
 | Field | Value |
 |---|---|
-| Phase | GUIDE |
-| Current module | CI + n8n contract + synthetic dry run |
+| Phase | DELIVER |
+| Current module | P0 acceptance complete; operational launch blocked |
 | Current branch/worktree | `codex/car-ai-job-search-p0` / `/Users/mikkohchen/Developer/mkkh-labs/ai-job-search-car-p0` |
-| Last green commit | `a1bf0f0` |
-| Overall status | Generic P0 implementation active; personal deployment `BLOCK_RELEASE` |
+| Last green code commit | `b5e38271c53c8fe08fd5754adf2d3f9b9358b322` |
+| Overall status | Generic P0 implementation complete; personal deployment `NO-GO` |
 
 ## Completed
 
@@ -28,13 +28,14 @@ owner: "MIKKOH Chen"
 | M02 Projection + M03 Job Intake | `3e01635` | 31 focused; 353 full-suite; independent review | PASS |
 | M04 Fit + M05 Evidence | `40fd93e` | 29 focused; 382 full-suite; contract lint; independent review | PASS |
 | M06 Application + M07 Review + M08 Approval | `a1bf0f0` | 62 focused; 424 full-suite; contract lint; independent review | PASS |
-| M10 Outcomes + validation/release CLI | pending commit | 48 focused; 458 full-suite; contract lint; independent review | PASS |
+| M10 Outcomes + validation/release CLI | `d9252fd` | 48 focused; 458 full-suite; contract lint; independent review | PASS |
+| CI + VARR + inactive n8n contract | `b5e3827` | 57 focused; 487 full-suite; build/lint/validate; independent review | PASS local |
 
 ## Current Failure
 
 | Test | Cause | Owner | Next action |
 |---|---|---|---|
-| None | N/A | N/A | Start CI/n8n/dry-run RED tests |
+| Personal operational release | Public destination and unauthenticated approval authority | MIKKOH Chen | Resolve `[O-01]` and `[O-03]` in `docs/launch-report.md` |
 
 ## Decisions
 
@@ -46,6 +47,8 @@ owner: "MIKKOH Chen"
 | DEC-004 | M02 and M03 may run in parallel with disjoint files after M01 lock | Execution architecture 4.3 | 98 |
 | DEC-005 | Constraint arrays are normalized as set-like projection inputs before semantic hashing | SPEC M02 deterministic arrays | 98 |
 | DEC-006 | Missing posting sections remain empty typed tuples and are also listed as unresolved | Runbook 9.3 + explicit unknown contract | 98 |
+| DEC-007 | Supported generation and revision run through the VARR ledger-owned API | Foundry ST-19 | 98 |
+| DEC-008 | M09 is deferred while P0 operational release is `NO-GO` | Foundry AC-M/release logic | 99 |
 
 ## Rulings
 
@@ -65,19 +68,16 @@ owner: "MIKKOH Chen"
 | RUL-012 | Null approval expiry is permitted for P0 verification | ApprovalRecord explicitly specifies `expires_at/null` | Operational policy may later require a finite TTL |
 | RUL-013 | M10 starts at APPROVED and uses a conservative forward-only lifecycle | M10 consumes approved packages; no broader transition graph is specified | CAR policy changes require a new event-contract version |
 | RUL-014 | Correction events target the latest lifecycle event and declare a permitted replacement state | Append-only history must correct facts without rewriting prior events | Older non-latest events require a chained correction policy |
+| RUL-015 | VARR is unknown at zero samples and measures every supported generated package version | A synthetic 1/1 proves instrumentation, not production performance | Production baseline requires a real approved sample |
+| RUL-016 | n8n retry/dead-letter behavior remains live-runtime `UNVERIFIED` | The export is inactive and its routing node is a no-send placeholder | Authorized instance testing remains required |
 
 ## Open Items
 
-| ID | Issue | Blocking | Next action |
-|---|---|---:|---|
-| O-01 | Public repository | Yes, personal runtime/release | Move runtime to a confirmed private repository |
-| O-02 | CAR export interface unknown | Yes, real projection | Provide versioned private export |
-| O-03 | n8n/Linear/Notion bindings unavailable | No, local correctness | Verify in authorized test targets after privacy gate |
-| O-04 | Reviewer and approver identity is unauthenticated | Yes, operational release | Bind identities to authenticated authority and append-only audit storage |
+The single reconciled ledger is `docs/launch-report.md` `[O-01]` through `[O-08]`.
 
 ## Next Exact Task
 
-Write and run failing CI-policy, inactive n8n-workflow, and synthetic dry-run tests.
+Move the personal runtime to a confirmed private repository and bind authenticated approval issuance.
 
 ## Commands Verified
 
@@ -95,3 +95,8 @@ Write and run failing CI-policy, inactive n8n-workflow, and synthetic dry-run te
 | `python3 -m unittest tests.test_car_contracts tests.test_car_events tests.test_car_cli -v` | PASS — 48 tests |
 | `python3 -m unittest discover -s tests -t . -v` after M10/CLI | PASS — 458 tests, 6 skips |
 | `python3 -m car_job_search validate --all` | PASS — `validation: OK` |
+| `python3 -m unittest tests.test_car_metrics tests.test_car_application tests.test_car_review tests.test_car_dry_run tests.test_car_policy -v` | PASS — 57 tests |
+| `python3 -m unittest discover -s tests -t . -v` after Task 6 | PASS — 487 tests, 6 skips |
+| `python3 tools/lint_contracts.py && python3 -m compileall -q src tests` | PASS — 9 schemas, exit 0 |
+| `python3 -m build` | PASS — sdist and wheel created |
+| `python3 -m car_job_search release package --output dist/release-manifest.json` | PASS — exact `b5e3827` manifest, 10 schemas |
