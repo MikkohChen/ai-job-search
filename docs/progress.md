@@ -15,9 +15,9 @@ owner: "MIKKOH Chen"
 | Field | Value |
 |---|---|
 | Phase | GUIDE |
-| Current module | M04 Fit Engine + M05 Evidence Resolver |
+| Current module | M06 Application + M07 Review + M08 Approval |
 | Current branch/worktree | `codex/car-ai-job-search-p0` / `/Users/mikkohchen/Developer/mkkh-labs/ai-job-search-car-p0` |
-| Last green commit | `7e55879` |
+| Last green commit | `3e01635` |
 | Overall status | Generic P0 implementation active; personal deployment `BLOCK_RELEASE` |
 
 ## Completed
@@ -25,13 +25,14 @@ owner: "MIKKOH Chen"
 | Module | Commit | Tests | Status |
 |---|---|---|---|
 | SCAN + M01 Contracts | `7e55879` | 10 focused; 332 full-suite; contract lint | PASS |
-| M02 Projection + M03 Job Intake | pending commit | 31 focused; 353 full-suite; independent review | PASS |
+| M02 Projection + M03 Job Intake | `3e01635` | 31 focused; 353 full-suite; independent review | PASS |
+| M04 Fit + M05 Evidence | pending commit | 29 focused; 382 full-suite; contract lint; independent review | PASS |
 
 ## Current Failure
 
 | Test | Cause | Owner | Next action |
 |---|---|---|---|
-| None | N/A | N/A | Start M02/M03 RED tests |
+| None | N/A | N/A | Start M06/M07/M08 RED tests |
 
 ## Decisions
 
@@ -52,6 +53,9 @@ owner: "MIKKOH Chen"
 | RUL-002 | Use external worktree path | Project-local worktree directory is not ignored; modifying `master` would violate the FIX boundary | Manual worktree cleanup after handoff |
 | RUL-003 | Use `docs/progress.md` as the SDD ledger | Required durable file is inside the declared path set; `.superpowers/` is outside it | No auto-generated SDD review package |
 | RUL-004 | Do not create fetch/directive execution paths merely to make named errors reachable | A dormant typed error is safer than widening M03 authority | Named errors remain nominal until an approved fetch adapter exists |
+| RUL-005 | M04 consumes an explicit overall score instead of inventing dimension weights | The governing documents define thresholds but no aggregation formula | Caller must supply a validated overall score until CAR defines weights |
+| RUL-006 | M05 verifies exact normalized claims only at P0 | Deterministic code cannot safely infer semantic paraphrase equivalence | Safe paraphrases require a separately reviewed evidence-preserving adapter |
+| RUL-007 | M05 uses a fixed confidence threshold of 80 and a three-argument resolver surface | The execution plan fixes the API and SPEC fixes the critical confidence boundary | A new policy version is required to change the threshold |
 
 ## Open Items
 
@@ -63,7 +67,7 @@ owner: "MIKKOH Chen"
 
 ## Next Exact Task
 
-Write and run failing M04 fit and M05 evidence acceptance tests in parallel.
+Write and run failing M06 application, M07 review, and M08 approval acceptance tests.
 
 ## Commands Verified
 
@@ -74,3 +78,5 @@ Write and run failing M04 fit and M05 evidence acceptance tests in parallel.
 | `python3 -m unittest discover -s tests -t . -v` | PASS — 332 tests, 6 skips |
 | `python3 -m unittest tests.test_car_projection tests.test_car_intake -v` | PASS — 20 tests |
 | `python3 -m unittest discover -s tests -t . -v` after M02/M03 | PASS — 353 tests, 6 skips |
+| `python3 -m unittest tests.test_car_fit tests.test_car_evidence -v` | PASS — 29 tests |
+| `python3 -m unittest discover -s tests -t . -v` after M04/M05 | PASS — 382 tests, 6 skips |

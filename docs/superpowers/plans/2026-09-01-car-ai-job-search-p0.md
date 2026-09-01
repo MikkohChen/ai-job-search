@@ -69,7 +69,7 @@ owner: "MIKKOH Chen"
 - [x] Run both focused modules and confirm missing-service failures.
 - [x] Implement normalization, canonical JSON hashing, duplicate/conflict rejection, and conservative posting extraction.
 - [x] Re-run focused and full suites.
-- [ ] Commit as `feat(runtime): add deterministic projection and inert intake`.
+- [x] Commit as `feat(runtime): add deterministic projection and inert intake`.
 
 ### Task 3: M04 Fit Engine and M05 Evidence Resolver
 
@@ -83,10 +83,10 @@ owner: "MIKKOH Chen"
 - Consumes: `assess_fit(...)` with explicit dimension scores/gates and `resolve_claim(text, projection, evidence_ids)`.
 - Produces: immutable `FitAssessment` and `EvidenceClaim` with deterministic verdicts and complete provenance.
 
-- [ ] Write failing hard-veto, exact-70, low-confidence, unsupported-claim, metric-strengthening, and contradiction tests.
-- [ ] Run focused tests and confirm missing-service failures.
-- [ ] Implement the minimum deterministic rules without AI inference.
-- [ ] Re-run focused and full suites.
+- [x] Write failing hard-veto, exact-70, low-confidence, unsupported-claim, metric-strengthening, and contradiction tests.
+- [x] Run focused tests and confirm missing-service failures.
+- [x] Implement the minimum deterministic rules without AI inference.
+- [x] Re-run focused and full suites.
 - [ ] Commit as `feat(decision): add fit gates and evidence resolution`.
 
 ### Task 4: M06 Application, M07 Review, and M08 Approval
