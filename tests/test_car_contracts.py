@@ -94,6 +94,67 @@ class ContractBoundaryTests(unittest.TestCase):
                 idempotency_key="",
             )
 
+    def test_outcome_event_requires_uuid_and_aware_timestamp(self):
+        for event_id, occurred_at in (
+            ("not-a-uuid", "2026-09-01T09:00:00Z"),
+            ("123e4567-e89b-12d3-a456-426614174000", "2026-09-01T09:00:00"),
+        ):
+            with self.subTest(event_id=event_id, occurred_at=occurred_at):
+                with self.assertRaises(SchemaViolation):
+                    OutcomeEvent(
+                        event_id=event_id,
+                        package_id="package-1",
+                        event_type="approved",
+                        occurred_at=occurred_at,
+                        source="synthetic-test",
+                        idempotency_key="event-1",
+                    )
+
+    def test_outcome_correction_requires_and_round_trips_typed_lineage(self):
+        event = OutcomeEvent(
+            event_id="123e4567-e89b-12d3-a456-426614174000",
+            package_id="package-1",
+            event_type="correction",
+            occurred_at="2026-09-01T09:00:00Z",
+            source="synthetic-test",
+            idempotency_key="correction-1",
+            evidence_ref="evidence-1",
+            correction_of="123e4567-e89b-12d3-a456-426614174001",
+            corrected_event_type="withdrawn",
+        )
+
+        self.assertEqual(OutcomeEvent.from_dict(event.to_dict()), event)
+        for event_type, correction_of, corrected_event_type in (
+            ("correction", None, "withdrawn"),
+            ("approved", "123e4567-e89b-12d3-a456-426614174001", "withdrawn"),
+            ("correction", "not-a-uuid", "withdrawn"),
+        ):
+            with self.subTest(event_type=event_type, correction_of=correction_of):
+                with self.assertRaises(SchemaViolation):
+                    OutcomeEvent(
+                        event_id="123e4567-e89b-12d3-a456-426614174000",
+                        package_id="package-1",
+                        event_type=event_type,
+                        occurred_at="2026-09-01T09:00:00Z",
+                        source="synthetic-test",
+                        idempotency_key="correction-invalid",
+                        evidence_ref="evidence-1",
+                        correction_of=correction_of,
+                        corrected_event_type=corrected_event_type,
+                    )
+
+        with self.assertRaises(SchemaViolation):
+            OutcomeEvent(
+                event_id="123e4567-e89b-12d3-a456-426614174000",
+                package_id="package-1",
+                event_type="correction",
+                occurred_at="2026-09-01T09:00:00Z",
+                source="synthetic-test",
+                idempotency_key="correction-without-evidence",
+                correction_of="123e4567-e89b-12d3-a456-426614174001",
+                corrected_event_type="withdrawn",
+            )
+
 
 class ContractRoundTripTests(unittest.TestCase):
     def test_runtime_projection_deep_freezes_nested_mappings_and_arrays(self):

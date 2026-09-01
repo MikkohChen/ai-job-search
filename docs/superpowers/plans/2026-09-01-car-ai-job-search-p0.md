@@ -108,7 +108,7 @@ owner: "MIKKOH Chen"
 - [x] Run focused tests and confirm missing-service failures.
 - [x] Implement deterministic Markdown assembly, independent validators, revision creation, and approval verification.
 - [x] Re-run focused and full suites.
-- [ ] Commit as `feat(application): add reviewed approval-bound packages`.
+- [x] Commit as `feat(application): add reviewed approval-bound packages`.
 
 ### Task 5: M10 Outcomes, CLI Validation, and Release Manifest
 
@@ -124,10 +124,10 @@ owner: "MIKKOH Chen"
 - Consumes: approved package reference and explicit lifecycle event.
 - Produces: append-only `OutcomeEvent`, idempotent outbox result, `validate --all`, and deterministic `release package --output PATH`.
 
-- [ ] Write failing replay, invalid-transition, secret-field, validation-command, and release-command tests.
-- [ ] Run focused tests and confirm missing-service/CLI failures.
-- [ ] Implement the append-only ledger, quarantine state, contract validation, and release metadata.
-- [ ] Re-run focused and full suites.
+- [x] Write failing replay, invalid-transition, secret-field, validation-command, and release-command tests.
+- [x] Run focused tests and confirm missing-service/CLI failures.
+- [x] Implement the append-only ledger, quarantine state, contract validation, and release metadata.
+- [x] Re-run focused and full suites.
 - [ ] Commit as `feat(events): add replay-safe outcomes and release CLI`.
 
 ### Task 6: CI, n8n Contract, Dry Run, and Acceptance Audit

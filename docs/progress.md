@@ -15,9 +15,9 @@ owner: "MIKKOH Chen"
 | Field | Value |
 |---|---|
 | Phase | GUIDE |
-| Current module | M10 Outcomes + release CLI |
+| Current module | CI + n8n contract + synthetic dry run |
 | Current branch/worktree | `codex/car-ai-job-search-p0` / `/Users/mikkohchen/Developer/mkkh-labs/ai-job-search-car-p0` |
-| Last green commit | `40fd93e` |
+| Last green commit | `a1bf0f0` |
 | Overall status | Generic P0 implementation active; personal deployment `BLOCK_RELEASE` |
 
 ## Completed
@@ -27,13 +27,14 @@ owner: "MIKKOH Chen"
 | SCAN + M01 Contracts | `7e55879` | 10 focused; 332 full-suite; contract lint | PASS |
 | M02 Projection + M03 Job Intake | `3e01635` | 31 focused; 353 full-suite; independent review | PASS |
 | M04 Fit + M05 Evidence | `40fd93e` | 29 focused; 382 full-suite; contract lint; independent review | PASS |
-| M06 Application + M07 Review + M08 Approval | pending commit | 62 focused; 424 full-suite; contract lint; independent review | PASS |
+| M06 Application + M07 Review + M08 Approval | `a1bf0f0` | 62 focused; 424 full-suite; contract lint; independent review | PASS |
+| M10 Outcomes + validation/release CLI | pending commit | 48 focused; 458 full-suite; contract lint; independent review | PASS |
 
 ## Current Failure
 
 | Test | Cause | Owner | Next action |
 |---|---|---|---|
-| None | N/A | N/A | Start M10/CLI RED tests |
+| None | N/A | N/A | Start CI/n8n/dry-run RED tests |
 
 ## Decisions
 
@@ -62,6 +63,8 @@ owner: "MIKKOH Chen"
 | RUL-010 | Blocking review findings are corrected only through immutable N+1 revision and fresh review | Same-version status replacement permits review-history bypasses | Corrections create additional package snapshots |
 | RUL-011 | Package checksum binds content, review state, and ordered review history | Approval must fail after artifact or review metadata changes | Every review transition changes the package checksum |
 | RUL-012 | Null approval expiry is permitted for P0 verification | ApprovalRecord explicitly specifies `expires_at/null` | Operational policy may later require a finite TTL |
+| RUL-013 | M10 starts at APPROVED and uses a conservative forward-only lifecycle | M10 consumes approved packages; no broader transition graph is specified | CAR policy changes require a new event-contract version |
+| RUL-014 | Correction events target the latest lifecycle event and declare a permitted replacement state | Append-only history must correct facts without rewriting prior events | Older non-latest events require a chained correction policy |
 
 ## Open Items
 
@@ -74,7 +77,7 @@ owner: "MIKKOH Chen"
 
 ## Next Exact Task
 
-Write and run failing M10 outcome, validation CLI, and release-manifest tests.
+Write and run failing CI-policy, inactive n8n-workflow, and synthetic dry-run tests.
 
 ## Commands Verified
 
@@ -89,3 +92,6 @@ Write and run failing M10 outcome, validation CLI, and release-manifest tests.
 | `python3 -m unittest discover -s tests -t . -v` after M04/M05 | PASS — 382 tests, 6 skips |
 | `python3 -m unittest tests.test_car_contracts tests.test_car_projection tests.test_car_application tests.test_car_review tests.test_car_approval -v` | PASS — 62 tests |
 | `python3 -m unittest discover -s tests -t . -v` after M06/M07/M08 | PASS — 424 tests, 6 skips |
+| `python3 -m unittest tests.test_car_contracts tests.test_car_events tests.test_car_cli -v` | PASS — 48 tests |
+| `python3 -m unittest discover -s tests -t . -v` after M10/CLI | PASS — 458 tests, 6 skips |
+| `python3 -m car_job_search validate --all` | PASS — `validation: OK` |

@@ -24,7 +24,7 @@ owner: "MIKKOH Chen"
 
 | Source | Version / identity | SHA-256 / commit | Authority | State |
 |---|---|---|---|---|
-| Current repository | `MikkohChen/ai-job-search`, branch `codex/car-ai-job-search-p0` | `4c38f7ce4c73448e8158d78dfbed47562690cd5c` | Existing implementation | [K] |
+| Implementation baseline | `MikkohChen/ai-job-search`, original public-fork baseline | `4c38f7ce4c73448e8158d78dfbed47562690cd5c` | Existing implementation | [K] |
 | Upstream reference | `MadsLorentzen/ai-job-search` | `4c38f7ce4c73448e8158d78dfbed47562690cd5c` | Selective pattern source | [K] |
 | Strategy | `1.0.0` | `0bdfb50fa60ecb5eeb2a0afa1ec29390efc2d16655b57bf04d574ffdf784c0de` | Product/security/KPI authority | [K] |
 | Execution pack | `1.0.0` | `7c41b4c01a66e2505fed8e05de1082687257c2891f4644f26986fa51226b5291` | Implementation authority | [K] |

@@ -7,6 +7,7 @@ from datetime import datetime
 from enum import Enum
 from types import MappingProxyType
 from typing import Any, ClassVar, Mapping, Sequence, TypeVar
+from uuid import UUID
 
 from .errors import DuplicateIdentifier, SchemaViolation, UnknownEnum, UnsupportedVersion
 
@@ -610,6 +611,8 @@ class OutcomeEvent:
     source: str
     idempotency_key: str
     evidence_ref: str | None = None
+    correction_of: str | None = None
+    corrected_event_type: OutcomeType | None = None
     payload_version: str = SCHEMA_VERSION
     schema_version: str = SCHEMA_VERSION
 
@@ -618,9 +621,40 @@ class OutcomeEvent:
         _require_version(self.payload_version)
         for name in ("event_id", "package_id", "occurred_at", "source"):
             _require_text(name, getattr(self, name))
+        try:
+            UUID(self.event_id)
+        except (TypeError, ValueError) as error:
+            raise SchemaViolation("event_id must be a UUID") from error
+        _aware_datetime("occurred_at", self.occurred_at)
         if not isinstance(self.idempotency_key, str) or not self.idempotency_key.strip():
             raise SchemaViolation("idempotency key is required")
         object.__setattr__(self, "event_type", _enum(OutcomeType, self.event_type))
+        if self.correction_of is not None:
+            _require_text("correction_of", self.correction_of)
+            try:
+                UUID(self.correction_of)
+            except (TypeError, ValueError) as error:
+                raise SchemaViolation("correction_of must be a UUID") from error
+        if self.corrected_event_type is not None:
+            object.__setattr__(
+                self,
+                "corrected_event_type",
+                _enum(OutcomeType, self.corrected_event_type),
+            )
+            if self.corrected_event_type is OutcomeType.CORRECTION:
+                raise SchemaViolation("corrected_event_type cannot be correction")
+        if self.event_type is OutcomeType.CORRECTION:
+            if (
+                not isinstance(self.evidence_ref, str)
+                or not self.evidence_ref.strip()
+                or self.correction_of is None
+                or self.corrected_event_type is None
+            ):
+                raise SchemaViolation(
+                    "correction events require evidence_ref, correction_of, and corrected_event_type"
+                )
+        elif self.correction_of is not None or self.corrected_event_type is not None:
+            raise SchemaViolation("only correction events may carry correction fields")
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -632,6 +666,10 @@ class OutcomeEvent:
             "source": self.source,
             "idempotency_key": self.idempotency_key,
             "evidence_ref": self.evidence_ref,
+            "correction_of": self.correction_of,
+            "corrected_event_type": (
+                self.corrected_event_type.value if self.corrected_event_type is not None else None
+            ),
             "payload_version": self.payload_version,
         }
 
@@ -646,6 +684,12 @@ class OutcomeEvent:
             source=str(value.get("source", "")),
             idempotency_key=str(value.get("idempotency_key", "")),
             evidence_ref=value.get("evidence_ref"),
+            correction_of=value.get("correction_of"),
+            corrected_event_type=(
+                _enum(OutcomeType, value["corrected_event_type"])
+                if value.get("corrected_event_type") is not None
+                else None
+            ),
             payload_version=str(value.get("payload_version", "")),
             schema_version=str(value["schema_version"]),
         )
