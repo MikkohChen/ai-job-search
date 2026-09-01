@@ -5,6 +5,7 @@ from .service import (
     BlockingFinding,
     PolicyViolation,
     SchemaFailure,
+    ValidationReport,
     review_package,
 )
 
@@ -13,5 +14,6 @@ __all__ = [
     "BlockingFinding",
     "PolicyViolation",
     "SchemaFailure",
+    "ValidationReport",
     "review_package",
 ]

@@ -5,8 +5,6 @@ from .service import (
     MissingRequiredModule,
     PackageTooLong,
     UnsupportedClaim,
-    build_application,
-    revise_application,
 )
 from .integrity import PackageIntegrityError
 
@@ -16,6 +14,4 @@ __all__ = [
     "PackageIntegrityError",
     "PackageTooLong",
     "UnsupportedClaim",
-    "build_application",
-    "revise_application",
 ]

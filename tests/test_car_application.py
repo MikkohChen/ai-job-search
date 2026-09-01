@@ -9,6 +9,7 @@ from pathlib import Path
 import unittest
 
 import car_job_search.application as application
+from car_job_search.application.service import build_application, revise_application
 from car_job_search.contracts import (
     FindingStatus,
     GateResult,
@@ -73,7 +74,7 @@ class ApplicationBuilderTests(unittest.TestCase):
             "max_characters": 4_000,
         }
         values.update(overrides)
-        return application.build_application(**values)
+        return build_application(**values)
 
     def test_builds_an_immutable_evidence_backed_package(self):
         package = self.build()
@@ -230,7 +231,7 @@ class ApplicationBuilderTests(unittest.TestCase):
         with self.assertRaises(application.FitGateClosed):
             self.build(projection=tampered)
         with self.assertRaises(application.FitGateClosed):
-            application.revise_application(
+            revise_application(
                 original,
                 assessment,
                 tampered,
@@ -253,7 +254,7 @@ class ApplicationBuilderTests(unittest.TestCase):
 
     def test_revision_creates_a_new_checksum_without_mutating_the_original(self):
         original = self.build()
-        revised = application.revise_application(
+        revised = revise_application(
             original,
             *inputs(),
             claims=inputs()[1].evidence_claims,
@@ -308,7 +309,7 @@ class ApplicationBuilderTests(unittest.TestCase):
         for candidate in (tampered, forged):
             with self.subTest(package=candidate.package_id):
                 with self.assertRaises(application.PackageIntegrityError):
-                    application.revise_application(
+                    revise_application(
                         candidate,
                         *inputs(),
                         claims=inputs()[1].evidence_claims,
@@ -371,15 +372,13 @@ class ApplicationBuilderTests(unittest.TestCase):
             (package.resume_markdown, package.application_markdown),
         )
 
-    def test_public_api_has_only_builder_errors_and_pure_build_operations(self):
+    def test_public_api_hides_builder_primitives_behind_instrumented_runtime_paths(self):
         expected = {
             "FitGateClosed",
             "UnsupportedClaim",
             "MissingRequiredModule",
             "PackageTooLong",
             "PackageIntegrityError",
-            "build_application",
-            "revise_application",
         }
         self.assertEqual(application.__all__, sorted(expected))
         self.assertEqual(
@@ -390,8 +389,10 @@ class ApplicationBuilderTests(unittest.TestCase):
             },
             expected,
         )
+        self.assertFalse(hasattr(application, "build_application"))
+        self.assertFalse(hasattr(application, "revise_application"))
         self.assertEqual(
-            tuple(inspect.signature(application.build_application).parameters),
+            tuple(inspect.signature(build_application).parameters),
             (
                 "assessment",
                 "projection",

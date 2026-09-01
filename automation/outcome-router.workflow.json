@@ -1,0 +1,247 @@
+{
+  "name": "CAR Outcome Router v1 (inactive contract)",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "car-outcome-event-v1",
+        "responseMode": "lastNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        -900,
+        0
+      ],
+      "id": "0e15a9bf-6ffb-4308-9d42-7b38c6cae001",
+      "name": "Receive OutcomeEvent",
+      "webhookId": "0e15a9bf-6ffb-4308-9d42-7b38c6cae001"
+    },
+    {
+      "parameters": {
+        "jsCode": "const allowedFields = new Set(['schema_version', 'event_id', 'package_id', 'event_type', 'occurred_at', 'source', 'idempotency_key', 'evidence_ref', 'correction_of', 'corrected_event_type', 'payload_version']);\nconst requiredFields = ['schema_version', 'event_id', 'package_id', 'event_type', 'occurred_at', 'source', 'idempotency_key', 'payload_version'];\nconst forbiddenField = /credential|token|password|secret/i;\nconst uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;\nconst outcomeTypes = new Set(['drafted', 'approved', 'submitted', 'interview', 'rejected', 'offer', 'withdrawn', 'correction']);\nconst correctionTypes = new Set(['drafted', 'approved', 'submitted', 'interview', 'rejected', 'offer', 'withdrawn']);\n\nreturn $input.all().map((item) => {\n  const payload = item.json.body ?? item.json;\n  const validObject = payload !== null && typeof payload === 'object' && !Array.isArray(payload);\n  const keys = validObject ? Object.keys(payload) : [];\n  const unknown = keys.filter((key) => !allowedFields.has(key) || forbiddenField.test(key));\n  const missing = validObject ? requiredFields.filter((key) => !(key in payload)) : [...requiredFields];\n  const validVersions = validObject && payload.schema_version === '1.0.0' && payload.payload_version === '1.0.0';\n  const validText = validObject && requiredFields.every((key) => typeof payload[key] === 'string' && payload[key].trim());\n  const validType = validObject && outcomeTypes.has(payload.event_type);\n  const validEventId = validObject && typeof payload.event_id === 'string' && uuidPattern.test(payload.event_id);\n  const validOccurredAt = validObject && typeof payload.occurred_at === 'string' && /(?:Z|[+-]\\d{2}:\\d{2})$/.test(payload.occurred_at) && !Number.isNaN(Date.parse(payload.occurred_at));\n  const optionalText = (value) => value === null || (typeof value === 'string' && value.trim());\n  const validCorrection = validObject && (payload.event_type === 'correction'\n    ? optionalText(payload.evidence_ref) && typeof payload.correction_of === 'string' && uuidPattern.test(payload.correction_of) && correctionTypes.has(payload.corrected_event_type)\n    : payload.correction_of === null && payload.corrected_event_type === null && optionalText(payload.evidence_ref));\n  if (!validObject || unknown.length || missing.length || !validVersions || !validText || !validType || !validEventId || !validOccurredAt || !validCorrection) {\n    return { json: { route_state: 'quarantine', reason: 'invalid_outcome_event', received_type: Array.isArray(payload) ? 'array' : typeof payload, rejected_fields: unknown.sort(), external_sends: 0 } };\n  }\n  return { json: { route_state: 'accepted', event: payload } };\n});"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -640,
+        0
+      ],
+      "id": "aa8a95ca-044d-4ec4-9247-a61c6cae0002",
+      "name": "Validate OutcomeEvent v1"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "1148d3c5-e448-4e99-b5a1-992288c10003",
+              "leftValue": "={{ $json.route_state }}",
+              "rightValue": "accepted",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -390,
+        0
+      ],
+      "id": "30ce499f-e4be-4914-8bb2-b4ec6cae0004",
+      "name": "OutcomeEvent valid?"
+    },
+    {
+      "parameters": {
+        "jsCode": "const state = $getWorkflowStaticData('global');\nstate.outcomeEventByIdempotencyKey ??= {};\n\nreturn $input.all().map((item) => {\n  const event = item.json.event;\n  const idempotencyKey = event.idempotency_key;\n  const canonical = Object.keys(event).sort().reduce((result, key) => { result[key] = event[key]; return result; }, {});\n  const fingerprint = JSON.stringify(canonical);\n  const previous = state.outcomeEventByIdempotencyKey[idempotencyKey];\n  if (previous === fingerprint) {\n    return { json: { route_state: 'replay_noop', event, fingerprint, external_sends: 0 } };\n  }\n  if (previous !== undefined) {\n    return { json: { route_state: 'quarantine', reason: 'idempotency_conflict', event, external_sends: 0 } };\n  }\n  return { json: { route_state: 'accepted', event, fingerprint, external_sends: 0 } };\n});"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -130,
+        -120
+      ],
+      "id": "bb59b317-ee62-4298-a90d-c6cae0000005",
+      "name": "Deduplicate before downstream work"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "2a051e0c-3be2-493d-a449-c6cae0000006",
+              "leftValue": "={{ $json.route_state }}",
+              "rightValue": "accepted",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        120,
+        -120
+      ],
+      "id": "489cb1ad-0b43-4164-85bd-c6cae0000007",
+      "name": "First accepted delivery?"
+    },
+    {
+      "parameters": {
+        "jsCode": "const maxAttempts = 3;\nreturn $input.all().map((item) => ({\n  json: {\n    ...item.json,\n    route: 'operational_placeholder',\n    external_sends: 0,\n    retry_policy: { max_attempts: maxAttempts, dead_letter: 'manual_review' },\n    live_import_runtime: 'UNVERIFIED'\n  }\n}));"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        390,
+        -240
+      ],
+      "id": "c3d9051e-0a14-4f3e-8517-c6cae0000008",
+      "name": "Operational routing placeholder"
+    },
+    {
+      "parameters": {
+        "jsCode": "const state = $getWorkflowStaticData('global');\nstate.outcomeEventByIdempotencyKey ??= {};\n\nreturn $input.all().map((item) => {\n  const key = item.json.event.idempotency_key;\n  state.outcomeEventByIdempotencyKey[key] = item.json.fingerprint;\n  return { json: { ...item.json, route_state: 'processed' } };\n});"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        650,
+        -240
+      ],
+      "id": "f5c780c4-6377-46ce-873b-c6cae0000010",
+      "name": "Record processed idempotency key"
+    },
+    {
+      "parameters": {
+        "jsCode": "return $input.all().map((item) => {\n  if (item.json.route_state === 'replay_noop') {\n    return { json: { route_state: 'replay_noop', route: 'no_op', event_id: item.json.event.event_id, package_id: item.json.event.package_id, idempotency_key: item.json.event.idempotency_key, external_sends: 0, live_import_runtime: 'UNVERIFIED' } };\n  }\n  const event = item.json.event ?? {};\n  return { json: { route_state: 'quarantine', route: 'manual_review', reason: item.json.reason ?? 'invalid_outcome_event', rejected_fields: item.json.rejected_fields ?? [], received_type: item.json.received_type ?? 'object', event_id: typeof event.event_id === 'string' ? event.event_id : null, package_id: typeof event.package_id === 'string' ? event.package_id : null, idempotency_key: typeof event.idempotency_key === 'string' ? event.idempotency_key : null, dead_letter: true, external_sends: 0, live_import_runtime: 'UNVERIFIED' } };\n});"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        390,
+        140
+      ],
+      "id": "e4b67f56-16c7-4a85-8a76-c6cae0000009",
+      "name": "Quarantine and manual review"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Receive OutcomeEvent": {
+      "main": [
+        [
+          {
+            "node": "Validate OutcomeEvent v1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validate OutcomeEvent v1": {
+      "main": [
+        [
+          {
+            "node": "OutcomeEvent valid?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OutcomeEvent valid?": {
+      "main": [
+        [
+          {
+            "node": "Deduplicate before downstream work",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Quarantine and manual review",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Deduplicate before downstream work": {
+      "main": [
+        [
+          {
+            "node": "First accepted delivery?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "First accepted delivery?": {
+      "main": [
+        [
+          {
+            "node": "Operational routing placeholder",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Quarantine and manual review",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Operational routing placeholder": {
+      "main": [
+        [
+          {
+            "node": "Record processed idempotency key",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "52c4a0aa-1f2d-4e4b-9daf-39a5561d0001",
+  "meta": {
+    "contract": "OutcomeEvent v1",
+    "live_import_runtime": "UNVERIFIED",
+    "operational_scope": "NoOp and Code placeholders only; no live downstream integration"
+  },
+  "tags": []
+}

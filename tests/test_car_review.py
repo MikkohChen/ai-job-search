@@ -8,9 +8,9 @@ import json
 from pathlib import Path
 import unittest
 
-import car_job_search.application as application
 import car_job_search.review as review
 from car_job_search.application.integrity import application_checksum, package_integrity_valid
+from car_job_search.application.service import build_application, revise_application
 from car_job_search.contracts import (
     FindingStatus,
     GateResult,
@@ -42,7 +42,7 @@ def inputs():
         confidence=90,
         evidence_refs=("evidence-delivery", "evidence-observability", "evidence-systems"),
     )
-    package = application.build_application(
+    package = build_application(
         assessment=assessment,
         projection=projection,
         posting=posting,
@@ -118,7 +118,7 @@ class ReviewPackageTests(unittest.TestCase):
         self.assertTrue(any(item.rule_id == "policy" for item in still_blocked.findings))
 
         package, posting, assessment, projection = inputs()
-        revised = application.revise_application(
+        revised = revise_application(
             blocked,
             assessment,
             projection,
@@ -299,7 +299,7 @@ class ReviewPackageTests(unittest.TestCase):
             confidence=assessment.confidence,
             evidence_refs=assessment.evidence_refs,
         )
-        hostile_package = application.build_application(
+        hostile_package = build_application(
             assessment=hostile_assessment,
             projection=projection,
             posting=hostile_posting,
@@ -318,7 +318,14 @@ class ReviewPackageTests(unittest.TestCase):
                 for name, value in vars(review).items()
                 if not name.startswith("_") and callable(value)
             },
-            {"ATSUnreadable", "BlockingFinding", "PolicyViolation", "SchemaFailure", "review_package"},
+            {
+                "ATSUnreadable",
+                "BlockingFinding",
+                "PolicyViolation",
+                "SchemaFailure",
+                "ValidationReport",
+                "review_package",
+            },
         )
 
     def test_boundary_type_failures_are_typed_and_internal_schema_failures_become_blocking_findings(self):
