@@ -86,7 +86,7 @@ owner: "MIKKOH Chen"
 | AC-61 | PASS | `automation/outcome-router.workflow.json` is tracked in commit `b5e3827`. |
 | AC-62 | PASS | The inactive workflow contains no CAR, Linear, Notion, or HTTP mutation node. |
 | AC-63 | PASS | Exact `python3 -m build` completed with sdist and wheel. |
-| AC-64 | PASS | Exact test discovery completed: 487 passed, 6 skipped, exit 0. |
+| AC-64 | PASS | Exact test discovery completed: 487 tests, `OK`, exit 0. |
 | AC-65 | PASS | Exact contract-lint plus compile command completed, exit 0. |
 | AC-66 | PASS | Exact `validate --all` returned `validation: OK`. |
 | AC-67 | PASS | Release manifest was generated for `b5e38271c53c8fe08fd5754adf2d3f9b9358b322`; 10 schemas verified. |

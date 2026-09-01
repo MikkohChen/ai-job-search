@@ -96,7 +96,7 @@ Move the personal runtime to a confirmed private repository and bind authenticat
 | `python3 -m unittest discover -s tests -t . -v` after M10/CLI | PASS — 458 tests, 6 skips |
 | `python3 -m car_job_search validate --all` | PASS — `validation: OK` |
 | `python3 -m unittest tests.test_car_metrics tests.test_car_application tests.test_car_review tests.test_car_dry_run tests.test_car_policy -v` | PASS — 57 tests |
-| `python3 -m unittest discover -s tests -t . -v` after Task 6 | PASS — 487 tests, 6 skips |
+| `python3 -m unittest discover -s tests -t . -v` after Task 6 | PASS — 487 tests, `OK` |
 | `python3 tools/lint_contracts.py && python3 -m compileall -q src tests` | PASS — 9 schemas, exit 0 |
 | `python3 -m build` | PASS — sdist and wheel created |
 | `python3 -m car_job_search release package --output dist/release-manifest.json` | PASS — exact `b5e3827` manifest, 10 schemas |

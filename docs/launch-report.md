@@ -43,7 +43,7 @@ owner: "MIKKOH Chen"
 
 | Command | Result | Runtime |
 |---|---|---|
-| `python3 -m unittest discover -s tests -t . -v` | PASS — 487 tests, 6 skipped, exit 0 | CPython 3.12.13 |
+| `python3 -m unittest discover -s tests -t . -v` | PASS — 487 tests, `OK`, exit 0 | CPython 3.12.13 |
 | `python3 tools/lint_contracts.py && python3 -m compileall -q src tests` | PASS — 9 schemas, exit 0 | CPython 3.12.13 |
 | `python3 -m car_job_search validate --all` | PASS — `validation: OK` | CPython 3.12.13 |
 | `python3 -m build` | PASS — sdist and wheel created | CPython 3.12.13 |
