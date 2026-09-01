@@ -91,6 +91,24 @@ class ContractBoundaryTests(unittest.TestCase):
 
 
 class ContractRoundTripTests(unittest.TestCase):
+    def test_runtime_projection_deep_freezes_nested_mappings_and_arrays(self):
+        projection = RuntimeProjection(
+            projection_id="projection-1",
+            generated_at="2026-09-01T09:00:00Z",
+            source_versions={"artifact-1": "1.0.0"},
+            evidence_claims=(),
+            role_targets=(),
+            constraints={"preferences": {"regions": ["NYC", "Remote"]}},
+            approved_modules={"summary": "Synthetic summary."},
+            checksum="a" * 64,
+        )
+
+        with self.assertRaises(TypeError):
+            projection.constraints["preferences"] = {}
+        with self.assertRaises(TypeError):
+            projection.constraints["preferences"]["regions"] = ()
+        self.assertEqual(projection.constraints["preferences"]["regions"], ("NYC", "Remote"))
+
     def test_runtime_projection_round_trip_retains_semantic_value(self):
         claim = EvidenceClaim(
             claim_id="claim-1",

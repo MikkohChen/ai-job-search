@@ -46,11 +46,11 @@ owner: "MIKKOH Chen"
 - Consumes: governing documents and JSON-compatible mappings.
 - Produces: immutable dataclasses, centralized enums, `from_dict(mapping)`, `to_dict()`, typed validation errors, and schema files for all nine shared entities.
 
-- [ ] Write failing boundary tests for unsupported versions, duplicate IDs, score bounds, unknown enums, missing evidence, missing idempotency keys, and round trips.
-- [ ] Run `python3 -m unittest tests.test_car_contracts -v`; confirm failures are missing imports/behavior.
-- [ ] Implement centralized contracts and minimal schema/lint behavior.
-- [ ] Re-run focused tests and the full existing suite.
-- [ ] Commit as `feat(contracts): add versioned CAR runtime contracts`.
+- [x] Write failing boundary tests for unsupported versions, duplicate IDs, score bounds, unknown enums, missing evidence, missing idempotency keys, and round trips.
+- [x] Run `python3 -m unittest tests.test_car_contracts -v`; confirm failures are missing imports/behavior.
+- [x] Implement centralized contracts and minimal schema/lint behavior.
+- [x] Re-run focused tests and the full existing suite.
+- [x] Commit as `feat(contracts): add versioned CAR runtime contracts`.
 
 ### Task 2: M02 Deterministic Projection and M03 Inert Intake
 
@@ -65,10 +65,10 @@ owner: "MIKKOH Chen"
 - Consumes: `build_projection(source: Mapping[str, object])` and `normalize_posting(raw_text: str, captured_at: str, source_url: str | None = None)`.
 - Produces: deterministic `RuntimeProjection` and `JobPosting`; no network, file, tool, or callback interface.
 
-- [ ] Write failing determinism/conflict/source-version and inert-posting/hash/null-field tests.
-- [ ] Run both focused modules and confirm missing-service failures.
-- [ ] Implement normalization, canonical JSON hashing, duplicate/conflict rejection, and conservative posting extraction.
-- [ ] Re-run focused and full suites.
+- [x] Write failing determinism/conflict/source-version and inert-posting/hash/null-field tests.
+- [x] Run both focused modules and confirm missing-service failures.
+- [x] Implement normalization, canonical JSON hashing, duplicate/conflict rejection, and conservative posting extraction.
+- [x] Re-run focused and full suites.
 - [ ] Commit as `feat(runtime): add deterministic projection and inert intake`.
 
 ### Task 3: M04 Fit Engine and M05 Evidence Resolver

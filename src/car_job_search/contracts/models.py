@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from enum import Enum
+from types import MappingProxyType
 from typing import Any, ClassVar, Mapping, Sequence, TypeVar
 
 from .errors import DuplicateIdentifier, SchemaViolation, UnknownEnum, UnsupportedVersion
@@ -113,6 +114,22 @@ def validate_unique_ids(values: Sequence[str]) -> None:
         seen.add(value)
 
 
+def _freeze_projection_value(value: Any) -> Any:
+    if isinstance(value, Mapping):
+        return MappingProxyType({key: _freeze_projection_value(item) for key, item in value.items()})
+    if isinstance(value, (list, tuple)):
+        return tuple(_freeze_projection_value(item) for item in value)
+    return value
+
+
+def _projection_dict_value(value: Any) -> Any:
+    if isinstance(value, Mapping):
+        return {key: _projection_dict_value(item) for key, item in value.items()}
+    if isinstance(value, tuple):
+        return [_projection_dict_value(item) for item in value]
+    return value
+
+
 @dataclass(frozen=True)
 class EvidenceClaim:
     claim_id: str
@@ -180,17 +197,20 @@ class RuntimeProjection:
         if not self.source_versions:
             raise SchemaViolation("projection requires source versions")
         validate_unique_ids([claim.claim_id for claim in self.evidence_claims])
+        object.__setattr__(self, "source_versions", _freeze_projection_value(self.source_versions))
+        object.__setattr__(self, "constraints", _freeze_projection_value(self.constraints))
+        object.__setattr__(self, "approved_modules", _freeze_projection_value(self.approved_modules))
 
     def to_dict(self) -> dict[str, Any]:
         return {
             "schema_version": self.schema_version,
             "projection_id": self.projection_id,
             "generated_at": self.generated_at,
-            "source_versions": dict(self.source_versions),
+            "source_versions": _projection_dict_value(self.source_versions),
             "evidence_claims": [claim.to_dict() for claim in self.evidence_claims],
             "role_targets": list(self.role_targets),
-            "constraints": dict(self.constraints),
-            "approved_modules": dict(self.approved_modules),
+            "constraints": _projection_dict_value(self.constraints),
+            "approved_modules": _projection_dict_value(self.approved_modules),
             "checksum": self.checksum,
         }
 
