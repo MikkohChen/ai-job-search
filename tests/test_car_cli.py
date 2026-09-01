@@ -211,9 +211,11 @@ class CarCliTests(unittest.TestCase):
 
     def test_release_command_reports_dirty_tree_without_writing_output(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
-            output = Path(directory) / "release-manifest.json"
+            fixture = ReleaseFixture(Path(directory))
+            (fixture.root / "untracked.txt").write_text("not released\n", encoding="utf-8")
+            output = fixture.root / "dist" / "release-manifest.json"
             environment = dict(os.environ)
-            environment["PYTHONPATH"] = str(ROOT / "src")
+            environment["PYTHONPATH"] = str(fixture.root / "src")
 
             result = subprocess.run(
                 [
@@ -225,7 +227,7 @@ class CarCliTests(unittest.TestCase):
                     "--output",
                     str(output),
                 ],
-                cwd=ROOT,
+                cwd=fixture.root,
                 env=environment,
                 capture_output=True,
                 text=True,
