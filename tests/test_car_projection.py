@@ -1,4 +1,5 @@
 import unittest
+from dataclasses import replace
 
 from car_job_search.contracts import EvidenceStatus
 from car_job_search.projection.service import (
@@ -8,6 +9,7 @@ from car_job_search.projection.service import (
     ProjectionDrift,
     build_projection,
 )
+from car_job_search.projection.integrity import projection_integrity_valid
 
 
 def synthetic_export(*, generated_at="2026-09-01T09:00:00Z"):
@@ -161,6 +163,25 @@ class ProjectionTests(unittest.TestCase):
 
         with self.assertRaises(ProjectionDrift):
             build_projection(source)
+
+    def test_integrity_recomputes_m02_semantic_checksum_without_generated_at(self):
+        projection = build_projection(synthetic_export())
+        changed_timestamp = replace(projection, generated_at="2026-09-01T10:00:00Z")
+        changed_module = replace(
+            projection, approved_modules={"summary": "Tampered approved copy."}
+        )
+        changed_claim = replace(
+            projection,
+            evidence_claims=(
+                replace(projection.evidence_claims[0], text="Tampered factual claim."),
+                projection.evidence_claims[1],
+            ),
+        )
+
+        self.assertTrue(projection_integrity_valid(projection))
+        self.assertTrue(projection_integrity_valid(changed_timestamp))
+        self.assertFalse(projection_integrity_valid(changed_module))
+        self.assertFalse(projection_integrity_valid(changed_claim))
 
 
 if __name__ == "__main__":

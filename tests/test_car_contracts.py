@@ -2,11 +2,16 @@ import unittest
 
 from car_job_search.contracts import (
     ApplicationPackage,
+    ApprovalAction,
+    ApprovalRecord,
     EvidenceClaim,
     EvidenceStatus,
+    FindingStatus,
     FitAssessment,
     JobPosting,
     OutcomeEvent,
+    ReviewFinding,
+    ReviewSeverity,
     RuntimeProjection,
     SchemaViolation,
     UnknownEnum,
@@ -172,6 +177,84 @@ class ContractRoundTripTests(unittest.TestCase):
         )
         self.assertEqual(ApplicationPackage.from_dict(package.to_dict()), package)
         self.assertEqual(package.claims[0].status, EvidenceStatus.VERIFIED)
+
+    def test_application_package_deep_freezes_snapshot_collections(self):
+        source_manifest = {"projection_checksum": "a" * 64}
+        package = ApplicationPackage(
+            package_id="package-1",
+            job_id="job-1",
+            version=1,
+            resume_markdown="# Resume\n",
+            application_markdown="# Application\n",
+            claims=[],
+            keywords=["Python"],
+            source_manifest=source_manifest,
+            checksum="c" * 64,
+        )
+
+        source_manifest["projection_checksum"] = "b" * 64
+        self.assertEqual(package.claims, ())
+        self.assertEqual(package.keywords, ("Python",))
+        self.assertEqual(package.source_manifest["projection_checksum"], "a" * 64)
+        with self.assertRaises(TypeError):
+            package.source_manifest["projection_checksum"] = "d" * 64
+
+    def test_review_finding_round_trip_and_evidence_immutability(self):
+        finding = ReviewFinding(
+            finding_id="finding-1",
+            rule_id="evidence.claim",
+            severity=ReviewSeverity.BLOCKING,
+            status=FindingStatus.OPEN,
+            artifact_ref="resume_markdown",
+            message="Claim is not admitted.",
+            evidence_refs=["evidence-1"],
+        )
+
+        self.assertEqual(finding.evidence_refs, ("evidence-1",))
+        self.assertEqual(ReviewFinding.from_dict(finding.to_dict()), finding)
+
+        package = ApplicationPackage(
+            package_id="package-1",
+            job_id="job-1",
+            version=1,
+            resume_markdown="# Resume\n",
+            application_markdown="# Application\n",
+            claims=(),
+            keywords=(),
+            source_manifest={"projection_checksum": "a" * 64},
+            checksum="c" * 64,
+            review_findings=[finding],
+        )
+        self.assertEqual(package.review_findings, (finding,))
+        self.assertEqual(ApplicationPackage.from_dict(package.to_dict()), package)
+
+    def test_approval_round_trip_requires_aware_ordered_timestamps(self):
+        approval = ApprovalRecord(
+            approval_id="approval-1",
+            package_checksum="d" * 64,
+            action=ApprovalAction.ARCHIVE,
+            approver="synthetic-reviewer",
+            approved_at="2026-09-01T12:00:00Z",
+            expires_at="2026-09-01T13:00:00+00:00",
+        )
+
+        self.assertEqual(ApprovalRecord.from_dict(approval.to_dict()), approval)
+        for approved_at, expires_at in (
+            ("2026-09-01T12:00:00", None),
+            ("not-a-time", None),
+            ("2026-09-01T12:00:00Z", "2026-09-01T12:00:00Z"),
+            ("2026-09-01T12:00:00Z", "2026-09-01T11:59:59Z"),
+        ):
+            with self.subTest(approved_at=approved_at, expires_at=expires_at):
+                with self.assertRaises(SchemaViolation):
+                    ApprovalRecord(
+                        approval_id="approval-1",
+                        package_checksum="d" * 64,
+                        action=ApprovalAction.ARCHIVE,
+                        approver="synthetic-reviewer",
+                        approved_at=approved_at,
+                        expires_at=expires_at,
+                    )
 
     def test_verdict_enum_is_centralized(self):
         self.assertEqual(Verdict.ACT.value, "act")

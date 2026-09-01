@@ -87,7 +87,7 @@ owner: "MIKKOH Chen"
 - [x] Run focused tests and confirm missing-service failures.
 - [x] Implement the minimum deterministic rules without AI inference.
 - [x] Re-run focused and full suites.
-- [ ] Commit as `feat(decision): add fit gates and evidence resolution`.
+- [x] Commit as `feat(decision): add fit gates and evidence resolution`.
 
 ### Task 4: M06 Application, M07 Review, and M08 Approval
 
@@ -104,10 +104,10 @@ owner: "MIKKOH Chen"
 - Consumes: ACT/overridden assessment, normalized posting, approved modules, verified claims, and independent review findings.
 - Produces: immutable versioned `ApplicationPackage`, validation report, and `ApprovalRecord` bound to checksum/action/approver/time.
 
-- [ ] Write failing below-70, exact-company/role, unsupported-claim, revision checksum, blocker, ATS plaintext, stale-checksum, and action-mismatch tests.
-- [ ] Run focused tests and confirm missing-service failures.
-- [ ] Implement deterministic Markdown assembly, independent validators, revision creation, and approval verification.
-- [ ] Re-run focused and full suites.
+- [x] Write failing below-70, exact-company/role, unsupported-claim, revision checksum, blocker, ATS plaintext, stale-checksum, and action-mismatch tests.
+- [x] Run focused tests and confirm missing-service failures.
+- [x] Implement deterministic Markdown assembly, independent validators, revision creation, and approval verification.
+- [x] Re-run focused and full suites.
 - [ ] Commit as `feat(application): add reviewed approval-bound packages`.
 
 ### Task 5: M10 Outcomes, CLI Validation, and Release Manifest

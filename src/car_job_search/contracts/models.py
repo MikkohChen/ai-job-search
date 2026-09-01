@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from datetime import datetime
 from enum import Enum
 from types import MappingProxyType
 from typing import Any, ClassVar, Mapping, Sequence, TypeVar
@@ -94,6 +95,17 @@ def _require_score(name: str, value: int) -> None:
 def _require_checksum(name: str, value: str) -> None:
     if len(value) != 64 or any(character not in "0123456789abcdef" for character in value):
         raise SchemaViolation(f"{name} must be a lowercase SHA-256 hex digest")
+
+
+def _aware_datetime(name: str, value: str) -> datetime:
+    _require_text(name, value)
+    try:
+        parsed = datetime.fromisoformat(value.replace("Z", "+00:00"))
+    except ValueError as error:
+        raise SchemaViolation(f"{name} must be an ISO-8601 timestamp") from error
+    if parsed.tzinfo is None or parsed.utcoffset() is None:
+        raise SchemaViolation(f"{name} must include a timezone offset")
+    return parsed
 
 
 def _enum(enum_type: type[_E], value: _E | str) -> _E:
@@ -401,6 +413,7 @@ class ApplicationPackage:
     source_manifest: Mapping[str, str]
     checksum: str
     review_state: ReviewState = ReviewState.DRAFT
+    review_findings: tuple["ReviewFinding", ...] = ()
     schema_version: str = SCHEMA_VERSION
 
     def __post_init__(self) -> None:
@@ -411,7 +424,28 @@ class ApplicationPackage:
             raise SchemaViolation("package version must be a positive integer")
         _require_checksum("checksum", self.checksum)
         object.__setattr__(self, "review_state", _enum(ReviewState, self.review_state))
+        if not isinstance(self.claims, (list, tuple)) or any(
+            not isinstance(claim, EvidenceClaim) for claim in self.claims
+        ):
+            raise SchemaViolation("package claims must contain only EvidenceClaim values")
+        object.__setattr__(self, "claims", tuple(self.claims))
         validate_unique_ids([claim.claim_id for claim in self.claims])
+        if not isinstance(self.keywords, (list, tuple)):
+            raise SchemaViolation("package keywords must be a sequence")
+        object.__setattr__(self, "keywords", tuple(self.keywords))
+        validate_unique_ids(self.keywords)
+        if not isinstance(self.source_manifest, Mapping):
+            raise SchemaViolation("source_manifest must be a mapping")
+        for key, value in self.source_manifest.items():
+            _require_text("source_manifest key", key)
+            _require_text("source_manifest value", value)
+        object.__setattr__(self, "source_manifest", _freeze_projection_value(self.source_manifest))
+        if not isinstance(self.review_findings, (list, tuple)) or any(
+            not isinstance(finding, ReviewFinding) for finding in self.review_findings
+        ):
+            raise SchemaViolation("review_findings must contain only ReviewFinding values")
+        object.__setattr__(self, "review_findings", tuple(self.review_findings))
+        validate_unique_ids([finding.finding_id for finding in self.review_findings])
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -426,11 +460,15 @@ class ApplicationPackage:
             "source_manifest": dict(self.source_manifest),
             "checksum": self.checksum,
             "review_state": self.review_state.value,
+            "review_findings": [finding.to_dict() for finding in self.review_findings],
         }
 
     @classmethod
     def from_dict(cls, value: Mapping[str, Any]) -> "ApplicationPackage":
         _require_version(str(value.get("schema_version", "")))
+        review_findings = value.get("review_findings", ())
+        if not isinstance(review_findings, (list, tuple)):
+            raise SchemaViolation("review_findings must be an array")
         return cls(
             package_id=str(value.get("package_id", "")),
             job_id=str(value.get("job_id", "")),
@@ -442,6 +480,7 @@ class ApplicationPackage:
             source_manifest=dict(value.get("source_manifest", {})),
             checksum=str(value.get("checksum", "")),
             review_state=_enum(ReviewState, value.get("review_state", "draft")),
+            review_findings=tuple(ReviewFinding.from_dict(item) for item in review_findings),
             schema_version=str(value["schema_version"]),
         )
 
@@ -463,6 +502,36 @@ class ReviewFinding:
             _require_text(name, getattr(self, name))
         object.__setattr__(self, "severity", _enum(ReviewSeverity, self.severity))
         object.__setattr__(self, "status", _enum(FindingStatus, self.status))
+        if not isinstance(self.evidence_refs, (list, tuple)):
+            raise SchemaViolation("finding evidence_refs must be a sequence")
+        object.__setattr__(self, "evidence_refs", tuple(self.evidence_refs))
+        validate_unique_ids(self.evidence_refs)
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "schema_version": self.schema_version,
+            "finding_id": self.finding_id,
+            "rule_id": self.rule_id,
+            "severity": self.severity.value,
+            "status": self.status.value,
+            "artifact_ref": self.artifact_ref,
+            "message": self.message,
+            "evidence_refs": list(self.evidence_refs),
+        }
+
+    @classmethod
+    def from_dict(cls, value: Mapping[str, Any]) -> "ReviewFinding":
+        _require_version(str(value.get("schema_version", "")))
+        return cls(
+            finding_id=str(value.get("finding_id", "")),
+            rule_id=str(value.get("rule_id", "")),
+            severity=_enum(ReviewSeverity, value.get("severity")),
+            status=_enum(FindingStatus, value.get("status")),
+            artifact_ref=str(value.get("artifact_ref", "")),
+            message=str(value.get("message", "")),
+            evidence_refs=tuple(value.get("evidence_refs", ())),
+            schema_version=str(value["schema_version"]),
+        )
 
 
 @dataclass(frozen=True)
@@ -481,6 +550,35 @@ class ApprovalRecord:
             _require_text(name, getattr(self, name))
         _require_checksum("package_checksum", self.package_checksum)
         object.__setattr__(self, "action", _enum(ApprovalAction, self.action))
+        approved_at = _aware_datetime("approved_at", self.approved_at)
+        if self.expires_at is not None:
+            expires_at = _aware_datetime("expires_at", self.expires_at)
+            if expires_at <= approved_at:
+                raise SchemaViolation("expires_at must be later than approved_at")
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "schema_version": self.schema_version,
+            "approval_id": self.approval_id,
+            "package_checksum": self.package_checksum,
+            "action": self.action.value,
+            "approver": self.approver,
+            "approved_at": self.approved_at,
+            "expires_at": self.expires_at,
+        }
+
+    @classmethod
+    def from_dict(cls, value: Mapping[str, Any]) -> "ApprovalRecord":
+        _require_version(str(value.get("schema_version", "")))
+        return cls(
+            approval_id=str(value.get("approval_id", "")),
+            package_checksum=str(value.get("package_checksum", "")),
+            action=_enum(ApprovalAction, value.get("action")),
+            approver=str(value.get("approver", "")),
+            approved_at=str(value.get("approved_at", "")),
+            expires_at=value.get("expires_at"),
+            schema_version=str(value["schema_version"]),
+        )
 
 
 @dataclass(frozen=True)
