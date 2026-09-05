@@ -14,7 +14,7 @@ owner: "MIKKOH Chen"
 
 **Release confidence:** 92.0%
 
-**Commit:** `b5e38271c53c8fe08fd5754adf2d3f9b9358b322`
+**Commit:** `f781526b07baf853eca32ec04c006e0621673d2a`
 
 **Scope:** P0
 
@@ -32,12 +32,12 @@ owner: "MIKKOH Chen"
 
 | Artifact/Module | Status | Tests | Commit |
 |---|---|---|---|
-| M01 contracts | PASS | Contract boundaries and round trips | `7e55879` |
-| M02 projection + M03 intake | PASS | Determinism, provenance, hostile posting | `3e01635` |
-| M04 fit + M05 evidence | PASS | Vetoes, thresholds, claim integrity | `40fd93e` |
-| M06 application + M07 review + M08 approval | PASS local | Immutable packages, validators, approval binding | `a1bf0f0` |
-| M10 outcomes + release CLI | PASS local | Replay, transitions, outbox, CLI | `d9252fd` |
-| CI + VARR + inactive n8n contract | PASS local | Policy, privacy, dry run, denominator coverage | `b5e3827` |
+| M01 contracts | PASS | Contract boundaries and round trips | `e646a3d` |
+| M02 projection + M03 intake | PASS | Determinism, provenance, hostile posting | `684e7bc` |
+| M04 fit + M05 evidence | PASS | Vetoes, thresholds, claim integrity | `8a2c6d9` |
+| M06 application + M07 review + M08 approval | PASS local | Immutable packages, validators, approval binding | `43c8400` |
+| M10 outcomes + release CLI | PASS local | Replay, transitions, outbox, CLI | `6e10f48` |
+| CI + VARR + inactive n8n contract | PASS local | Policy, privacy, dry run, denominator coverage | `f781526` |
 
 ## Validation
 

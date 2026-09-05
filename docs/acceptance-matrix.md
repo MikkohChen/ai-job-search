@@ -83,13 +83,13 @@ owner: "MIKKOH Chen"
 | AC-58 | PASS | Invalid transitions are quarantined and remain observable. |
 | AC-59 | PASS | Immutable delivery attempts keep failed outbox records replayable. |
 | AC-60 | PASS | Schema, Python tests, and executable workflow-code checks exclude secret values. |
-| AC-61 | PASS | `automation/outcome-router.workflow.json` is tracked in commit `b5e3827`. |
+| AC-61 | PASS | `automation/outcome-router.workflow.json` is tracked in commit `f781526`. |
 | AC-62 | PASS | The inactive workflow contains no CAR, Linear, Notion, or HTTP mutation node. |
 | AC-63 | PASS | Exact `python3 -m build` completed with sdist and wheel. |
 | AC-64 | PASS | Exact test discovery completed: 487 tests, `OK`, exit 0. |
 | AC-65 | PASS | Exact contract-lint plus compile command completed, exit 0. |
 | AC-66 | PASS | Exact `validate --all` returned `validation: OK`. |
-| AC-67 | PASS | Release manifest was generated for `b5e38271c53c8fe08fd5754adf2d3f9b9358b322`; 10 schemas verified. |
+| AC-67 | PASS | Release manifest was generated for `f781526b07baf853eca32ec04c006e0621673d2a`; 10 schemas verified. |
 | AC-68 | PASS | Independent review approved the scoped diff; `git diff --check` passed. |
 | AC-69 | UNVERIFIED | The branch is local-only; no GitHub Actions run exists for its exact SHA. |
 | AC-70 | PASS | `docs/launch-report.md` contains the single reconciled open-item ledger. |

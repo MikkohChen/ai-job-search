@@ -17,19 +17,19 @@ owner: "MIKKOH Chen"
 | Phase | DELIVER |
 | Current module | P0 acceptance complete; operational launch blocked |
 | Current branch/worktree | `codex/car-ai-job-search-p0` / `/Users/mikkohchen/Developer/mkkh-labs/ai-job-search-car-p0` |
-| Last green code commit | `b5e38271c53c8fe08fd5754adf2d3f9b9358b322` |
+| Last green code commit | `f781526b07baf853eca32ec04c006e0621673d2a` |
 | Overall status | Generic P0 implementation complete; personal deployment `NO-GO` |
 
 ## Completed
 
 | Module | Commit | Tests | Status |
 |---|---|---|---|
-| SCAN + M01 Contracts | `7e55879` | 10 focused; 332 full-suite; contract lint | PASS |
-| M02 Projection + M03 Job Intake | `3e01635` | 31 focused; 353 full-suite; independent review | PASS |
-| M04 Fit + M05 Evidence | `40fd93e` | 29 focused; 382 full-suite; contract lint; independent review | PASS |
-| M06 Application + M07 Review + M08 Approval | `a1bf0f0` | 62 focused; 424 full-suite; contract lint; independent review | PASS |
-| M10 Outcomes + validation/release CLI | `d9252fd` | 48 focused; 458 full-suite; contract lint; independent review | PASS |
-| CI + VARR + inactive n8n contract | `b5e3827` | 57 focused; 487 full-suite; build/lint/validate; independent review | PASS local |
+| SCAN + M01 Contracts | `e646a3d` | 10 focused; 332 full-suite; contract lint | PASS |
+| M02 Projection + M03 Job Intake | `684e7bc` | 31 focused; 353 full-suite; independent review | PASS |
+| M04 Fit + M05 Evidence | `8a2c6d9` | 29 focused; 382 full-suite; contract lint; independent review | PASS |
+| M06 Application + M07 Review + M08 Approval | `43c8400` | 62 focused; 424 full-suite; contract lint; independent review | PASS |
+| M10 Outcomes + validation/release CLI | `6e10f48` | 48 focused; 458 full-suite; contract lint; independent review | PASS |
+| CI + VARR + inactive n8n contract | `f781526` | 57 focused; 487 full-suite; build/lint/validate; independent review | PASS local |
 
 ## Current Failure
 
@@ -99,4 +99,4 @@ Move the personal runtime to a confirmed private repository and bind authenticat
 | `python3 -m unittest discover -s tests -t . -v` after Task 6 | PASS — 487 tests, `OK` |
 | `python3 tools/lint_contracts.py && python3 -m compileall -q src tests` | PASS — 9 schemas, exit 0 |
 | `python3 -m build` | PASS — sdist and wheel created |
-| `python3 -m car_job_search release package --output dist/release-manifest.json` | PASS — exact `b5e3827` manifest, 10 schemas |
+| `python3 -m car_job_search release package --output dist/release-manifest.json` | PASS — exact `f781526` manifest, 10 schemas |
