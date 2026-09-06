@@ -1,0 +1,46 @@
+{
+  "posting": {
+    "raw_text": "Company: Exact Atlas\nRole: Platform Engineer\nRequirements: Python, distributed systems, C++, Node.js, and observability.\n",
+    "captured_at": "2026-09-01T12:00:00Z"
+  },
+  "projection": {
+    "projection_id": "application-projection",
+    "generated_at": "2026-09-01T12:00:00Z",
+    "artifacts": [
+      {"artifact_id": "career-facts", "version": "1.0.0"},
+      {"artifact_id": "approved-copy", "version": "1.0.0"}
+    ],
+    "evidence_claims": [
+      {
+        "claim_id": "claim-delivery",
+        "text": "Delivered a verified Python platform.",
+        "evidence_ids": ["evidence-delivery"],
+        "confidence": 96,
+        "status": "verified",
+        "source_artifact_ids": ["career-facts"]
+      },
+      {
+        "claim_id": "claim-observability",
+        "text": "Improved verified observability coverage.",
+        "evidence_ids": ["evidence-observability"],
+        "confidence": 94,
+        "status": "verified",
+        "source_artifact_ids": ["career-facts"]
+      },
+      {
+        "claim_id": "claim-systems",
+        "text": "Built a verified distributed systems component.",
+        "evidence_ids": ["evidence-systems"],
+        "confidence": 92,
+        "status": "verified",
+        "source_artifact_ids": ["career-facts"]
+      }
+    ],
+    "role_targets": ["Platform Engineer"],
+    "constraints": {},
+    "approved_modules": {
+      "summary": "Delivered a verified Python platform.",
+      "experience": "Improved verified observability coverage."
+    }
+  }
+}
