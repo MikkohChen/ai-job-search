@@ -59,7 +59,7 @@ def build_application(
     """Return version-one package from caller-selected, fully verified inputs."""
     _validate_fit(assessment, projection, posting)
     verified_claims = _verified_claims(claims, projection, assessment)
-    modules = _approved_modules(module_names, projection)
+    modules = _approved_modules(module_names, projection, verified_claims)
     source_keywords = _keywords(keywords, posting)
     return _assemble(
         assessment,
@@ -93,7 +93,7 @@ def revise_application(
     _validate_fit(assessment, projection, posting)
     _validate_original_source(original, assessment, projection, posting)
     verified_claims = _verified_claims(claims, projection, assessment)
-    modules = _approved_modules(module_names, projection)
+    modules = _approved_modules(module_names, projection, verified_claims)
     source_keywords = _keywords(keywords, posting)
     revised = _assemble(
         assessment,
@@ -162,6 +162,16 @@ def _verified_claims(
         raise UnsupportedClaim("projection contains duplicate evidence IDs")
     admitted = {claim.claim_id: claim for claim in projection.evidence_claims}
     assessment_evidence_refs = set(assessment.evidence_refs)
+    eligible = tuple(
+        claim
+        for claim in projection.evidence_claims
+        if claim.status is EvidenceStatus.VERIFIED
+        and set(claim.evidence_ids).issubset(assessment_evidence_refs)
+    )
+    if len(eligible) >= 3 and len(selected) < 3:
+        raise UnsupportedClaim(
+            "three verified achievements are required when admitted source evidence supports them"
+        )
     for claim in selected:
         if claim.status is not EvidenceStatus.VERIFIED or admitted.get(claim.claim_id) != claim:
             raise UnsupportedClaim("claim must exactly match a verified projection claim")
@@ -171,7 +181,9 @@ def _verified_claims(
 
 
 def _approved_modules(
-    module_names: Sequence[str], projection: RuntimeProjection
+    module_names: Sequence[str],
+    projection: RuntimeProjection,
+    claims: Sequence[EvidenceClaim],
 ) -> tuple[tuple[str, str], ...]:
     if not isinstance(module_names, Sequence) or isinstance(module_names, (str, bytes)):
         raise MissingRequiredModule("module_names must be a sequence of module names")
@@ -180,11 +192,16 @@ def _approved_modules(
         raise MissingRequiredModule("at least one non-empty module name is required")
     if len(set(names)) != len(names):
         raise MissingRequiredModule("module_names must be unique")
+    claim_texts = {" ".join(claim.text.split()).casefold() for claim in claims}
     modules: list[tuple[str, str]] = []
     for name in names:
         content = projection.approved_modules.get(name)
         if not isinstance(content, str) or not content.strip():
             raise MissingRequiredModule(f"approved module is missing: {name}")
+        if " ".join(content.split()).casefold() not in claim_texts:
+            raise MissingRequiredModule(
+                f"approved module copy is absent from the package claim ledger: {name}"
+            )
         modules.append((name, content))
     return tuple(modules)
 

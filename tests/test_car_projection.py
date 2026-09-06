@@ -40,7 +40,7 @@ def synthetic_export(*, generated_at="2026-09-01T09:00:00Z"):
         ],
         "role_targets": ["Synthetic Product Lead", "Synthetic Operator"],
         "constraints": {"work_mode": "remote"},
-        "approved_modules": {"summary": "Synthetic approved summary."},
+        "approved_modules": {"summary": "Led a synthetic delivery program."},
     }
 
 
@@ -139,6 +139,13 @@ class ProjectionTests(unittest.TestCase):
 
         self.assertEqual(claim.status, EvidenceStatus.UNVERIFIED)
         self.assertEqual(claim.evidence_ids, ())
+
+    def test_approved_module_copy_requires_an_exact_verified_claim(self):
+        source = synthetic_export()
+        source["approved_modules"]["summary"] = "Increased synthetic revenue by 99%."
+
+        with self.assertRaisesRegex(MissingRequiredArtifact, "approved module"):
+            build_projection(source)
 
     def test_projection_package_exports_only_the_approved_callable_surface(self):
         import car_job_search.projection as projection

@@ -9,7 +9,12 @@ from collections.abc import Mapping, Sequence
 from types import MappingProxyType
 from typing import Any
 
-from car_job_search.contracts import EvidenceClaim, RuntimeProjection, SCHEMA_VERSION
+from car_job_search.contracts import (
+    EvidenceClaim,
+    EvidenceStatus,
+    RuntimeProjection,
+    SCHEMA_VERSION,
+)
 from car_job_search.contracts.errors import SchemaViolation
 
 
@@ -180,6 +185,21 @@ def build_projection(source: Mapping[str, object]) -> RuntimeProjection:
         _text(key, "approved module name"): _text(value, "approved module text")
         for key, value in _mapping(source.get("approved_modules", {}), "approved_modules").items()
     }
+    verified_claim_texts = {
+        _normalized_text(claim.text)
+        for claim in claims
+        if claim.status is EvidenceStatus.VERIFIED
+    }
+    unsupported_modules = tuple(
+        name
+        for name, content in sorted(approved_modules.items())
+        if _normalized_text(content) not in verified_claim_texts
+    )
+    if unsupported_modules:
+        raise MissingRequiredArtifact(
+            "approved module copy must exactly match a verified evidence claim: "
+            + ", ".join(unsupported_modules)
+        )
     semantic_value = {
         "schema_version": SCHEMA_VERSION,
         "projection_id": projection_id,

@@ -190,7 +190,7 @@ class ReviewPackageTests(unittest.TestCase):
         replaced = replace(
             package,
             resume_markdown=package.resume_markdown.replace(
-                "Approved platform engineering summary.", "Replacement module copy."
+                "Delivered a verified Python platform.", "Replacement module copy."
             ),
         )
         replaced = replace(

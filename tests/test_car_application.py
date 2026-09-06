@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import inspect
 import json
+from copy import deepcopy
 from dataclasses import replace
 from pathlib import Path
 import unittest
@@ -242,11 +243,50 @@ class ApplicationBuilderTests(unittest.TestCase):
                 4_000,
             )
 
-    def test_omits_achievement_section_when_fewer_than_three_claims_are_verified(self):
-        package = self.build(claims=inputs()[1].evidence_claims[:2])
+    def test_rejects_fewer_than_three_achievements_when_source_supports_three(self):
+        with self.assertRaisesRegex(application.UnsupportedClaim, "three verified achievements"):
+            self.build(claims=inputs()[1].evidence_claims[:2])
 
-        self.assertNotIn("## Verified achievements", package.application_markdown)
-        self.assertNotIn("## Verified achievements", package.resume_markdown)
+    def test_selected_module_copy_requires_its_claim_in_the_package_ledger(self):
+        source = deepcopy(json.loads(FIXTURE.read_text(encoding="utf-8")))
+        source["projection"]["evidence_claims"].append(
+            {
+                "claim_id": "claim-fourth",
+                "text": "Documented a fourth verified synthetic result.",
+                "evidence_ids": ["evidence-fourth"],
+                "confidence": 91,
+                "status": "verified",
+                "source_artifact_ids": ["career-facts"],
+            }
+        )
+        projection = build_projection(source["projection"])
+        posting = normalize_posting(**source["posting"])
+        assessment = assess_fit(
+            projection=projection,
+            posting=posting,
+            gate_results=(GateResult("eligibility", GateStatus.PASS, "candidate", "eligible"),),
+            job_fit=90,
+            requirements_reality=90,
+            strategic_value=90,
+            overall_fit=90,
+            confidence=90,
+            evidence_refs=tuple(
+                evidence_id
+                for claim in projection.evidence_claims
+                for evidence_id in claim.evidence_ids
+            ),
+        )
+
+        with self.assertRaisesRegex(application.MissingRequiredModule, "claim ledger"):
+            build_application(
+                assessment,
+                projection,
+                posting,
+                projection.evidence_claims[1:],
+                ("summary", "experience"),
+                ("Python",),
+                4_000,
+            )
 
     def test_rejects_packages_over_the_explicit_character_limit(self):
         with self.assertRaises(application.PackageTooLong):
