@@ -1,4 +1,5 @@
 import unittest
+from copy import deepcopy
 
 from car_job_search.contracts import (
     ApplicationPackage,
@@ -8,6 +9,10 @@ from car_job_search.contracts import (
     EvidenceStatus,
     FindingStatus,
     FitAssessment,
+    GateResult,
+    GateStatus,
+    InterviewPack,
+    InterviewStage,
     JobPosting,
     OutcomeEvent,
     ReviewFinding,
@@ -154,6 +159,128 @@ class ContractBoundaryTests(unittest.TestCase):
                 correction_of="123e4567-e89b-12d3-a456-426614174001",
                 corrected_event_type="withdrawn",
             )
+
+    def test_job_posting_mapping_rejects_wrong_types_missing_fields_and_bad_formats(self):
+        valid = {
+            "schema_version": "1.0.0",
+            "job_id": "job-1",
+            "company": "Example Company",
+            "role": "Example Role",
+            "raw_text": "Example Company\nExample Role",
+            "source_url": "https://example.com/jobs/1",
+            "captured_at": "2026-09-01T09:00:00Z",
+            "raw_text_hash": "b" * 64,
+            "requirements": ["Python"],
+            "preferred_requirements": [],
+            "responsibilities": [],
+            "unresolved_fields": [],
+        }
+        mutations = (
+            ("company", 7),
+            ("role", []),
+            ("source_url", 7),
+            ("source_url", "not a URL"),
+            ("source_url", "https://[::1"),
+            ("captured_at", "not a timestamp"),
+            ("requirements", [7]),
+        )
+        for field, bad_value in mutations:
+            with self.subTest(field=field, bad_value=bad_value):
+                payload = {**valid, field: bad_value}
+                with self.assertRaises(SchemaViolation):
+                    JobPosting.from_dict(payload)
+
+        missing = dict(valid)
+        del missing["requirements"]
+        with self.assertRaises(SchemaViolation):
+            JobPosting.from_dict(missing)
+
+    def test_deserializers_reject_coercion_and_required_field_defaults(self):
+        claim = EvidenceClaim(
+            claim_id="claim-1",
+            text="Synthetic claim.",
+            evidence_ids=("evidence-1",),
+            confidence=98,
+            status=EvidenceStatus.VERIFIED,
+            source_versions=("artifact-1@1.0.0",),
+        )
+        projection = RuntimeProjection(
+            projection_id="projection-1",
+            generated_at="2026-09-01T09:00:00Z",
+            source_versions={"artifact-1": "1.0.0"},
+            evidence_claims=(claim,),
+            role_targets=("Synthetic Engineer",),
+            constraints={},
+            approved_modules={"summary": claim.text},
+            checksum="a" * 64,
+        )
+        assessment = FitAssessment(
+            assessment_id="assessment-1",
+            job_id="job-1",
+            projection_checksum="a" * 64,
+            gate_results=(GateResult("eligibility", GateStatus.PASS, None, "eligible"),),
+            job_fit=90,
+            requirements_reality=90,
+            strategic_value=90,
+            overall_fit=90,
+            confidence=90,
+            verdict=Verdict.ACT,
+            evidence_refs=("evidence-1",),
+        )
+        package = ApplicationPackage(
+            package_id="package-1",
+            job_id="job-1",
+            version=1,
+            resume_markdown="# Resume",
+            application_markdown="# Application",
+            claims=(claim,),
+            keywords=("Python",),
+            source_manifest={"projection_checksum": "a" * 64},
+            checksum="c" * 64,
+        )
+        finding = ReviewFinding(
+            finding_id="finding-1",
+            rule_id="evidence.claim",
+            severity=ReviewSeverity.BLOCKING,
+            status=FindingStatus.OPEN,
+            artifact_ref="resume_markdown",
+            message="Synthetic finding.",
+        )
+        approval = ApprovalRecord(
+            approval_id="approval-1",
+            package_checksum="d" * 64,
+            action=ApprovalAction.ARCHIVE,
+            approver="synthetic-reviewer",
+            approved_at="2026-09-01T12:00:00Z",
+        )
+        outcome = OutcomeEvent(
+            event_id="123e4567-e89b-12d3-a456-426614174000",
+            package_id="package-1",
+            event_type="approved",
+            occurred_at="2026-09-01T12:00:00Z",
+            source="synthetic-test",
+            idempotency_key="event-1",
+        )
+        cases = (
+            (EvidenceClaim.from_dict, claim.to_dict(), "claim_id", 7),
+            (RuntimeProjection.from_dict, projection.to_dict(), "projection_id", 7),
+            (GateResult.from_dict, assessment.gate_results[0].to_dict(), "name", 7),
+            (FitAssessment.from_dict, assessment.to_dict(), "human_override", "false"),
+            (ReviewFinding.from_dict, finding.to_dict(), "message", 7),
+            (ApprovalRecord.from_dict, approval.to_dict(), "approver", 7),
+            (OutcomeEvent.from_dict, outcome.to_dict(), "source", 7),
+        )
+        for loader, original, field, bad_value in cases:
+            with self.subTest(loader=loader.__qualname__, field=field):
+                payload = deepcopy(original)
+                payload[field] = bad_value
+                with self.assertRaises(SchemaViolation):
+                    loader(payload)
+
+        missing_review_state = package.to_dict()
+        del missing_review_state["review_state"]
+        with self.assertRaises(SchemaViolation):
+            ApplicationPackage.from_dict(missing_review_state)
 
 
 class ContractRoundTripTests(unittest.TestCase):
@@ -316,6 +443,25 @@ class ContractRoundTripTests(unittest.TestCase):
                         approved_at=approved_at,
                         expires_at=expires_at,
                     )
+
+    def test_interview_pack_round_trip_deep_freezes_nested_answer_maps(self):
+        answers = [{"question_id": "q-1", "evidence": ["evidence-1"]}]
+        pack = InterviewPack(
+            interview_id="interview-1",
+            package_id="package-1",
+            package_checksum="a" * 64,
+            stage=InterviewStage.RECRUITER,
+            questions=("Tell me about the synthetic result.",),
+            answer_maps=answers,
+            evidence_ids=("evidence-1",),
+            gap_bridges=("State the verified boundary.",),
+        )
+
+        answers[0]["evidence"].append("mutated")
+        self.assertEqual(pack.answer_maps[0]["evidence"], ("evidence-1",))
+        with self.assertRaises(TypeError):
+            pack.answer_maps[0]["question_id"] = "changed"
+        self.assertEqual(InterviewPack.from_dict(pack.to_dict()), pack)
 
     def test_verdict_enum_is_centralized(self):
         self.assertEqual(Verdict.ACT.value, "act")

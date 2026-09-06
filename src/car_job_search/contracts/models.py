@@ -7,6 +7,7 @@ from datetime import datetime
 from enum import Enum
 from types import MappingProxyType
 from typing import Any, ClassVar, Mapping, Sequence, TypeVar
+from urllib.parse import urlsplit
 from uuid import UUID
 
 from .errors import DuplicateIdentifier, SchemaViolation, UnknownEnum, UnsupportedVersion
@@ -109,6 +110,70 @@ def _aware_datetime(name: str, value: str) -> datetime:
     return parsed
 
 
+def _mapping_input(value: object, name: str = "payload") -> Mapping[str, Any]:
+    if not isinstance(value, Mapping):
+        raise SchemaViolation(f"{name} must be a mapping")
+    return value
+
+
+def _required(value: Mapping[str, Any], key: str) -> Any:
+    if key not in value:
+        raise SchemaViolation(f"{key} is required")
+    return value[key]
+
+
+def _optional_text(name: str, value: object) -> str | None:
+    if value is None:
+        return None
+    _require_text(name, value)
+    return value
+
+
+def _string_sequence(name: str, value: object) -> tuple[str, ...]:
+    if not isinstance(value, (list, tuple)):
+        raise SchemaViolation(f"{name} must be an array")
+    for item in value:
+        _require_text(f"{name} item", item)
+    return tuple(value)
+
+
+def _mapping_sequence(name: str, value: object) -> tuple[Mapping[str, Any], ...]:
+    if not isinstance(value, (list, tuple)):
+        raise SchemaViolation(f"{name} must be an array")
+    if any(not isinstance(item, Mapping) for item in value):
+        raise SchemaViolation(f"{name} items must be mappings")
+    return tuple(value)
+
+
+def _text_mapping(name: str, value: object) -> dict[str, str]:
+    mapping = _mapping_input(value, name)
+    result: dict[str, str] = {}
+    for key, item in mapping.items():
+        _require_text(f"{name} key", key)
+        _require_text(f"{name} value", item)
+        result[key] = item
+    return result
+
+
+def _optional_url(name: str, value: object) -> str | None:
+    text = _optional_text(name, value)
+    if text is None:
+        return None
+    try:
+        parsed = urlsplit(text)
+    except ValueError as error:
+        raise SchemaViolation(f"{name} must be an absolute HTTP(S) URL") from error
+    if parsed.scheme not in {"http", "https"} or not parsed.netloc:
+        raise SchemaViolation(f"{name} must be an absolute HTTP(S) URL")
+    return text
+
+
+def _boolean(name: str, value: object) -> bool:
+    if not isinstance(value, bool):
+        raise SchemaViolation(f"{name} must be a boolean")
+    return value
+
+
 def _enum(enum_type: type[_E], value: _E | str) -> _E:
     if isinstance(value, enum_type):
         return value
@@ -179,15 +244,19 @@ class EvidenceClaim:
 
     @classmethod
     def from_dict(cls, value: Mapping[str, Any]) -> "EvidenceClaim":
-        _require_version(str(value.get("schema_version", "")))
+        value = _mapping_input(value)
+        schema_version = _required(value, "schema_version")
+        _require_version(schema_version)
         return cls(
-            claim_id=str(value.get("claim_id", "")),
-            text=str(value.get("text", "")),
-            evidence_ids=tuple(value.get("evidence_ids", ())),
-            confidence=value.get("confidence"),
-            status=_enum(EvidenceStatus, value.get("status")),
-            source_versions=tuple(value.get("source_versions", ())),
-            schema_version=str(value["schema_version"]),
+            claim_id=_required(value, "claim_id"),
+            text=_required(value, "text"),
+            evidence_ids=_string_sequence("evidence_ids", _required(value, "evidence_ids")),
+            confidence=_required(value, "confidence"),
+            status=_enum(EvidenceStatus, _required(value, "status")),
+            source_versions=_string_sequence(
+                "source_versions", _required(value, "source_versions")
+            ),
+            schema_version=schema_version,
         )
 
 @dataclass(frozen=True)
@@ -205,14 +274,23 @@ class RuntimeProjection:
     def __post_init__(self) -> None:
         _require_version(self.schema_version)
         _require_text("projection_id", self.projection_id)
-        _require_text("generated_at", self.generated_at)
+        _aware_datetime("generated_at", self.generated_at)
         _require_checksum("checksum", self.checksum)
-        if not self.source_versions:
+        source_versions = _text_mapping("source_versions", self.source_versions)
+        if not source_versions:
             raise SchemaViolation("projection requires source versions")
+        if not isinstance(self.evidence_claims, (list, tuple)) or any(
+            not isinstance(claim, EvidenceClaim) for claim in self.evidence_claims
+        ):
+            raise SchemaViolation("evidence_claims must contain EvidenceClaim values")
+        object.__setattr__(self, "evidence_claims", tuple(self.evidence_claims))
         validate_unique_ids([claim.claim_id for claim in self.evidence_claims])
-        object.__setattr__(self, "source_versions", _freeze_projection_value(self.source_versions))
+        object.__setattr__(self, "role_targets", _string_sequence("role_targets", self.role_targets))
+        _mapping_input(self.constraints, "constraints")
+        approved_modules = _text_mapping("approved_modules", self.approved_modules)
+        object.__setattr__(self, "source_versions", _freeze_projection_value(source_versions))
         object.__setattr__(self, "constraints", _freeze_projection_value(self.constraints))
-        object.__setattr__(self, "approved_modules", _freeze_projection_value(self.approved_modules))
+        object.__setattr__(self, "approved_modules", _freeze_projection_value(approved_modules))
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -229,17 +307,26 @@ class RuntimeProjection:
 
     @classmethod
     def from_dict(cls, value: Mapping[str, Any]) -> "RuntimeProjection":
-        _require_version(str(value.get("schema_version", "")))
+        value = _mapping_input(value)
+        schema_version = _required(value, "schema_version")
+        _require_version(schema_version)
+        claims = _required(value, "evidence_claims")
+        if not isinstance(claims, (list, tuple)):
+            raise SchemaViolation("evidence_claims must be an array")
         return cls(
-            projection_id=str(value.get("projection_id", "")),
-            generated_at=str(value.get("generated_at", "")),
-            source_versions=dict(value.get("source_versions", {})),
-            evidence_claims=tuple(EvidenceClaim.from_dict(item) for item in value.get("evidence_claims", ())),
-            role_targets=tuple(value.get("role_targets", ())),
-            constraints=dict(value.get("constraints", {})),
-            approved_modules=dict(value.get("approved_modules", {})),
-            checksum=str(value.get("checksum", "")),
-            schema_version=str(value["schema_version"]),
+            projection_id=_required(value, "projection_id"),
+            generated_at=_required(value, "generated_at"),
+            source_versions=_text_mapping(
+                "source_versions", _required(value, "source_versions")
+            ),
+            evidence_claims=tuple(EvidenceClaim.from_dict(item) for item in claims),
+            role_targets=_string_sequence("role_targets", value.get("role_targets", ())),
+            constraints=dict(_mapping_input(value.get("constraints", {}), "constraints")),
+            approved_modules=_text_mapping(
+                "approved_modules", value.get("approved_modules", {})
+            ),
+            checksum=_required(value, "checksum"),
+            schema_version=schema_version,
         )
 
 
@@ -266,8 +353,25 @@ class JobPosting:
         _require_version(self.schema_version)
         _require_text("job_id", self.job_id)
         _require_text("raw_text", self.raw_text)
-        _require_text("captured_at", self.captured_at)
+        _aware_datetime("captured_at", self.captured_at)
         _require_checksum("raw_text_hash", self.raw_text_hash)
+        for name in (
+            "company",
+            "role",
+            "location",
+            "work_mode",
+            "compensation",
+            "eligibility",
+        ):
+            _optional_text(name, getattr(self, name))
+        _optional_url("source_url", self.source_url)
+        for name in (
+            "requirements",
+            "preferred_requirements",
+            "responsibilities",
+            "unresolved_fields",
+        ):
+            object.__setattr__(self, name, _string_sequence(name, getattr(self, name)))
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -291,24 +395,32 @@ class JobPosting:
 
     @classmethod
     def from_dict(cls, value: Mapping[str, Any]) -> "JobPosting":
-        _require_version(str(value.get("schema_version", "")))
+        value = _mapping_input(value)
+        schema_version = _required(value, "schema_version")
+        _require_version(schema_version)
         return cls(
-            job_id=str(value.get("job_id", "")),
+            job_id=_required(value, "job_id"),
             company=value.get("company"),
             role=value.get("role"),
-            raw_text=str(value.get("raw_text", "")),
+            raw_text=_required(value, "raw_text"),
             source_url=value.get("source_url"),
-            captured_at=str(value.get("captured_at", "")),
-            raw_text_hash=str(value.get("raw_text_hash", "")),
+            captured_at=_required(value, "captured_at"),
+            raw_text_hash=_required(value, "raw_text_hash"),
             location=value.get("location"),
             work_mode=value.get("work_mode"),
             compensation=value.get("compensation"),
             eligibility=value.get("eligibility"),
-            requirements=tuple(value.get("requirements", ())),
-            preferred_requirements=tuple(value.get("preferred_requirements", ())),
-            responsibilities=tuple(value.get("responsibilities", ())),
-            unresolved_fields=tuple(value.get("unresolved_fields", ())),
-            schema_version=str(value["schema_version"]),
+            requirements=_string_sequence("requirements", _required(value, "requirements")),
+            preferred_requirements=_string_sequence(
+                "preferred_requirements", _required(value, "preferred_requirements")
+            ),
+            responsibilities=_string_sequence(
+                "responsibilities", _required(value, "responsibilities")
+            ),
+            unresolved_fields=_string_sequence(
+                "unresolved_fields", _required(value, "unresolved_fields")
+            ),
+            schema_version=schema_version,
         )
 
 
@@ -322,6 +434,7 @@ class GateResult:
     def __post_init__(self) -> None:
         _require_text("gate name", self.name)
         _require_text("gate reason", self.reason)
+        _optional_text("gate source", self.source)
         object.__setattr__(self, "status", _enum(GateStatus, self.status))
 
     def to_dict(self) -> dict[str, Any]:
@@ -329,11 +442,12 @@ class GateResult:
 
     @classmethod
     def from_dict(cls, value: Mapping[str, Any]) -> "GateResult":
+        value = _mapping_input(value)
         return cls(
-            name=str(value.get("name", "")),
-            status=_enum(GateStatus, value.get("status")),
+            name=_required(value, "name"),
+            status=_enum(GateStatus, _required(value, "status")),
             source=value.get("source"),
-            reason=str(value.get("reason", "")),
+            reason=_required(value, "reason"),
         )
 
 
@@ -361,6 +475,14 @@ class FitAssessment:
         _require_checksum("projection_checksum", self.projection_checksum)
         for name in ("job_fit", "requirements_reality", "strategic_value", "overall_fit", "confidence"):
             _require_score(name, getattr(self, name))
+        if not isinstance(self.gate_results, (list, tuple)) or any(
+            not isinstance(gate, GateResult) for gate in self.gate_results
+        ):
+            raise SchemaViolation("gate_results must contain GateResult values")
+        object.__setattr__(self, "gate_results", tuple(self.gate_results))
+        object.__setattr__(self, "evidence_refs", _string_sequence("evidence_refs", self.evidence_refs))
+        object.__setattr__(self, "material_gaps", _string_sequence("material_gaps", self.material_gaps))
+        _boolean("human_override", self.human_override)
         object.__setattr__(self, "verdict", _enum(Verdict, self.verdict))
 
     def to_dict(self) -> dict[str, Any]:
@@ -383,22 +505,29 @@ class FitAssessment:
 
     @classmethod
     def from_dict(cls, value: Mapping[str, Any]) -> "FitAssessment":
-        _require_version(str(value.get("schema_version", "")))
+        value = _mapping_input(value)
+        schema_version = _required(value, "schema_version")
+        _require_version(schema_version)
+        gates = _required(value, "gate_results")
+        if not isinstance(gates, (list, tuple)):
+            raise SchemaViolation("gate_results must be an array")
         return cls(
-            assessment_id=str(value.get("assessment_id", "")),
-            job_id=str(value.get("job_id", "")),
-            projection_checksum=str(value.get("projection_checksum", "")),
-            gate_results=tuple(GateResult.from_dict(item) for item in value.get("gate_results", ())),
-            job_fit=value.get("job_fit"),
-            requirements_reality=value.get("requirements_reality"),
-            strategic_value=value.get("strategic_value"),
-            overall_fit=value.get("overall_fit"),
-            confidence=value.get("confidence"),
-            verdict=_enum(Verdict, value.get("verdict")),
-            evidence_refs=tuple(value.get("evidence_refs", ())),
-            material_gaps=tuple(value.get("material_gaps", ())),
-            human_override=bool(value.get("human_override", False)),
-            schema_version=str(value["schema_version"]),
+            assessment_id=_required(value, "assessment_id"),
+            job_id=_required(value, "job_id"),
+            projection_checksum=_required(value, "projection_checksum"),
+            gate_results=tuple(GateResult.from_dict(item) for item in gates),
+            job_fit=_required(value, "job_fit"),
+            requirements_reality=_required(value, "requirements_reality"),
+            strategic_value=_required(value, "strategic_value"),
+            overall_fit=_required(value, "overall_fit"),
+            confidence=_required(value, "confidence"),
+            verdict=_enum(Verdict, _required(value, "verdict")),
+            evidence_refs=_string_sequence(
+                "evidence_refs", _required(value, "evidence_refs")
+            ),
+            material_gaps=_string_sequence("material_gaps", value.get("material_gaps", ())),
+            human_override=_boolean("human_override", value.get("human_override", False)),
+            schema_version=schema_version,
         )
 
 
@@ -466,23 +595,30 @@ class ApplicationPackage:
 
     @classmethod
     def from_dict(cls, value: Mapping[str, Any]) -> "ApplicationPackage":
-        _require_version(str(value.get("schema_version", "")))
+        value = _mapping_input(value)
+        schema_version = _required(value, "schema_version")
+        _require_version(schema_version)
+        claims = _required(value, "claims")
+        if not isinstance(claims, (list, tuple)):
+            raise SchemaViolation("claims must be an array")
         review_findings = value.get("review_findings", ())
         if not isinstance(review_findings, (list, tuple)):
             raise SchemaViolation("review_findings must be an array")
         return cls(
-            package_id=str(value.get("package_id", "")),
-            job_id=str(value.get("job_id", "")),
-            version=value.get("version"),
-            resume_markdown=str(value.get("resume_markdown", "")),
-            application_markdown=str(value.get("application_markdown", "")),
-            claims=tuple(EvidenceClaim.from_dict(item) for item in value.get("claims", ())),
-            keywords=tuple(value.get("keywords", ())),
-            source_manifest=dict(value.get("source_manifest", {})),
-            checksum=str(value.get("checksum", "")),
-            review_state=_enum(ReviewState, value.get("review_state", "draft")),
+            package_id=_required(value, "package_id"),
+            job_id=_required(value, "job_id"),
+            version=_required(value, "version"),
+            resume_markdown=_required(value, "resume_markdown"),
+            application_markdown=_required(value, "application_markdown"),
+            claims=tuple(EvidenceClaim.from_dict(item) for item in claims),
+            keywords=_string_sequence("keywords", _required(value, "keywords")),
+            source_manifest=_text_mapping(
+                "source_manifest", _required(value, "source_manifest")
+            ),
+            checksum=_required(value, "checksum"),
+            review_state=_enum(ReviewState, _required(value, "review_state")),
             review_findings=tuple(ReviewFinding.from_dict(item) for item in review_findings),
-            schema_version=str(value["schema_version"]),
+            schema_version=schema_version,
         )
 
 
@@ -503,9 +639,11 @@ class ReviewFinding:
             _require_text(name, getattr(self, name))
         object.__setattr__(self, "severity", _enum(ReviewSeverity, self.severity))
         object.__setattr__(self, "status", _enum(FindingStatus, self.status))
-        if not isinstance(self.evidence_refs, (list, tuple)):
-            raise SchemaViolation("finding evidence_refs must be a sequence")
-        object.__setattr__(self, "evidence_refs", tuple(self.evidence_refs))
+        object.__setattr__(
+            self,
+            "evidence_refs",
+            _string_sequence("finding evidence_refs", self.evidence_refs),
+        )
         validate_unique_ids(self.evidence_refs)
 
     def to_dict(self) -> dict[str, Any]:
@@ -522,16 +660,20 @@ class ReviewFinding:
 
     @classmethod
     def from_dict(cls, value: Mapping[str, Any]) -> "ReviewFinding":
-        _require_version(str(value.get("schema_version", "")))
+        value = _mapping_input(value)
+        schema_version = _required(value, "schema_version")
+        _require_version(schema_version)
         return cls(
-            finding_id=str(value.get("finding_id", "")),
-            rule_id=str(value.get("rule_id", "")),
-            severity=_enum(ReviewSeverity, value.get("severity")),
-            status=_enum(FindingStatus, value.get("status")),
-            artifact_ref=str(value.get("artifact_ref", "")),
-            message=str(value.get("message", "")),
-            evidence_refs=tuple(value.get("evidence_refs", ())),
-            schema_version=str(value["schema_version"]),
+            finding_id=_required(value, "finding_id"),
+            rule_id=_required(value, "rule_id"),
+            severity=_enum(ReviewSeverity, _required(value, "severity")),
+            status=_enum(FindingStatus, _required(value, "status")),
+            artifact_ref=_required(value, "artifact_ref"),
+            message=_required(value, "message"),
+            evidence_refs=_string_sequence(
+                "evidence_refs", _required(value, "evidence_refs")
+            ),
+            schema_version=schema_version,
         )
 
 
@@ -570,15 +712,17 @@ class ApprovalRecord:
 
     @classmethod
     def from_dict(cls, value: Mapping[str, Any]) -> "ApprovalRecord":
-        _require_version(str(value.get("schema_version", "")))
+        value = _mapping_input(value)
+        schema_version = _required(value, "schema_version")
+        _require_version(schema_version)
         return cls(
-            approval_id=str(value.get("approval_id", "")),
-            package_checksum=str(value.get("package_checksum", "")),
-            action=_enum(ApprovalAction, value.get("action")),
-            approver=str(value.get("approver", "")),
-            approved_at=str(value.get("approved_at", "")),
-            expires_at=value.get("expires_at"),
-            schema_version=str(value["schema_version"]),
+            approval_id=_required(value, "approval_id"),
+            package_checksum=_required(value, "package_checksum"),
+            action=_enum(ApprovalAction, _required(value, "action")),
+            approver=_required(value, "approver"),
+            approved_at=_required(value, "approved_at"),
+            expires_at=_optional_text("expires_at", value.get("expires_at")),
+            schema_version=schema_version,
         )
 
 
@@ -600,6 +744,42 @@ class InterviewPack:
         _require_text("package_id", self.package_id)
         _require_checksum("package_checksum", self.package_checksum)
         object.__setattr__(self, "stage", _enum(InterviewStage, self.stage))
+        object.__setattr__(self, "questions", _string_sequence("questions", self.questions))
+        answer_maps = _mapping_sequence("answer_maps", self.answer_maps)
+        object.__setattr__(self, "answer_maps", _freeze_projection_value(answer_maps))
+        object.__setattr__(self, "evidence_ids", _string_sequence("evidence_ids", self.evidence_ids))
+        validate_unique_ids(self.evidence_ids)
+        object.__setattr__(self, "gap_bridges", _string_sequence("gap_bridges", self.gap_bridges))
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "schema_version": self.schema_version,
+            "interview_id": self.interview_id,
+            "package_id": self.package_id,
+            "package_checksum": self.package_checksum,
+            "stage": self.stage.value,
+            "questions": list(self.questions),
+            "answer_maps": _projection_dict_value(self.answer_maps),
+            "evidence_ids": list(self.evidence_ids),
+            "gap_bridges": list(self.gap_bridges),
+        }
+
+    @classmethod
+    def from_dict(cls, value: Mapping[str, Any]) -> "InterviewPack":
+        value = _mapping_input(value)
+        schema_version = _required(value, "schema_version")
+        _require_version(schema_version)
+        return cls(
+            interview_id=_required(value, "interview_id"),
+            package_id=_required(value, "package_id"),
+            package_checksum=_required(value, "package_checksum"),
+            stage=_enum(InterviewStage, _required(value, "stage")),
+            questions=_string_sequence("questions", _required(value, "questions")),
+            answer_maps=_mapping_sequence("answer_maps", _required(value, "answer_maps")),
+            evidence_ids=_string_sequence("evidence_ids", _required(value, "evidence_ids")),
+            gap_bridges=_string_sequence("gap_bridges", _required(value, "gap_bridges")),
+            schema_version=schema_version,
+        )
 
 
 @dataclass(frozen=True)
@@ -628,6 +808,7 @@ class OutcomeEvent:
         _aware_datetime("occurred_at", self.occurred_at)
         if not isinstance(self.idempotency_key, str) or not self.idempotency_key.strip():
             raise SchemaViolation("idempotency key is required")
+        _optional_text("evidence_ref", self.evidence_ref)
         object.__setattr__(self, "event_type", _enum(OutcomeType, self.event_type))
         if self.correction_of is not None:
             _require_text("correction_of", self.correction_of)
@@ -675,21 +856,23 @@ class OutcomeEvent:
 
     @classmethod
     def from_dict(cls, value: Mapping[str, Any]) -> "OutcomeEvent":
-        _require_version(str(value.get("schema_version", "")))
+        value = _mapping_input(value)
+        schema_version = _required(value, "schema_version")
+        _require_version(schema_version)
         return cls(
-            event_id=str(value.get("event_id", "")),
-            package_id=str(value.get("package_id", "")),
-            event_type=_enum(OutcomeType, value.get("event_type")),
-            occurred_at=str(value.get("occurred_at", "")),
-            source=str(value.get("source", "")),
-            idempotency_key=str(value.get("idempotency_key", "")),
-            evidence_ref=value.get("evidence_ref"),
-            correction_of=value.get("correction_of"),
+            event_id=_required(value, "event_id"),
+            package_id=_required(value, "package_id"),
+            event_type=_enum(OutcomeType, _required(value, "event_type")),
+            occurred_at=_required(value, "occurred_at"),
+            source=_required(value, "source"),
+            idempotency_key=_required(value, "idempotency_key"),
+            evidence_ref=_optional_text("evidence_ref", value.get("evidence_ref")),
+            correction_of=_optional_text("correction_of", value.get("correction_of")),
             corrected_event_type=(
                 _enum(OutcomeType, value["corrected_event_type"])
                 if value.get("corrected_event_type") is not None
                 else None
             ),
-            payload_version=str(value.get("payload_version", "")),
-            schema_version=str(value["schema_version"]),
+            payload_version=_required(value, "payload_version"),
+            schema_version=schema_version,
         )
