@@ -7,6 +7,7 @@ from decimal import Decimal
 import hashlib
 import json
 from pathlib import Path
+import subprocess
 import unittest
 
 from car_job_search.application import FitGateClosed, UnsupportedClaim
@@ -180,6 +181,27 @@ def simulate_router(
 
 
 class OutcomeRouterWorkflowTests(unittest.TestCase):
+    def execute_validation_node(self, payload: object) -> dict[str, object]:
+        workflow = json.loads(WORKFLOW.read_text(encoding="utf-8"))
+        code = next(
+            node["parameters"]["jsCode"]
+            for node in workflow["nodes"]
+            if node["name"] == "Validate OutcomeEvent v1"
+        )
+        wrapper = (
+            "const payload = JSON.parse(process.argv[1]);"
+            "const $input = {all: () => [{json: payload}]};"
+            "const result = (() => {" + code + "})();"
+            "process.stdout.write(JSON.stringify(result[0].json));"
+        )
+        completed = subprocess.run(
+            ["node", "-e", wrapper, json.dumps(payload)],
+            check=True,
+            capture_output=True,
+            text=True,
+        )
+        return json.loads(completed.stdout)
+
     def test_export_is_inactive_credential_free_n8n_json_with_safe_routing_contract(self):
         workflow = json.loads(WORKFLOW.read_text(encoding="utf-8"))
 
@@ -292,6 +314,26 @@ class OutcomeRouterWorkflowTests(unittest.TestCase):
         self.assertEqual(failed["state"], "retry_exhausted")
         self.assertEqual(retried["state"], "accepted")
         self.assertIn(event.idempotency_key, seen)
+
+    def test_checked_in_validator_quarantines_a_correction_without_evidence(self):
+        payload = {
+            "schema_version": "1.0.0",
+            "event_id": "123e4567-e89b-12d3-a456-426614174000",
+            "package_id": "package-1",
+            "event_type": "correction",
+            "occurred_at": OCCURRED_AT,
+            "source": "synthetic-test",
+            "idempotency_key": "correction-without-evidence",
+            "evidence_ref": None,
+            "correction_of": "123e4567-e89b-12d3-a456-426614174001",
+            "corrected_event_type": "withdrawn",
+            "payload_version": "1.0.0",
+        }
+
+        result = self.execute_validation_node(payload)
+
+        self.assertEqual(result["route_state"], "quarantine")
+        self.assertEqual(result["external_sends"], 0)
 
     def test_hostile_posting_stays_inert_and_existing_fit_evidence_gates_hold(self):
         hostile = normalize_posting(
