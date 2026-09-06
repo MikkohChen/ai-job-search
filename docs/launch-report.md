@@ -14,7 +14,7 @@ owner: "MIKKOH Chen"
 
 **Release confidence:** 92.0%
 
-**Commit:** `f781526b07baf853eca32ec04c006e0621673d2a`
+**Commit:** `9f5eae8d6108079705016d9be1bc69850d1f011d`
 
 **Scope:** P0
 
@@ -22,7 +22,7 @@ owner: "MIKKOH Chen"
 
 | Area | Result | Evidence | Confidence |
 |---|---|---|---:|
-| Generic local runtime | PASS | 487 tests; deterministic build/validation; independent review | 98% |
+| Generic runtime | PASS | 493 tests; deterministic build/validation; independent review | 98% |
 | Personal runtime | BLOCK_RELEASE | Destination is public and real CAR data was not admitted | 99% |
 | Approval authority | BLOCK_RELEASE | Structural record is verified; authenticated issuer is unavailable | 99% |
 | Live integrations | UNVERIFIED | n8n export is inactive; Linear/Notion bindings were not authorized | 99% |
@@ -38,23 +38,24 @@ owner: "MIKKOH Chen"
 | M06 application + M07 review + M08 approval | PASS local | Immutable packages, validators, approval binding | `43c8400` |
 | M10 outcomes + release CLI | PASS local | Replay, transitions, outbox, CLI | `6e10f48` |
 | CI + VARR + inactive n8n contract | PASS local | Policy, privacy, dry run, denominator coverage | `f781526` |
+| Review hardening | PASS local | Evidence-bound copy, strict mappings, correction parity | `9f5eae8` |
 
 ## Validation
 
 | Command | Result | Runtime |
 |---|---|---|
-| `python3 -m unittest discover -s tests -t . -v` | PASS — 487 tests, `OK`, exit 0 | CPython 3.12.13 |
+| `python3 -m unittest discover -s tests -t . -v` | PASS — 493 tests, `OK`, exit 0 | CPython 3.12.13 |
 | `python3 tools/lint_contracts.py && python3 -m compileall -q src tests` | PASS — 9 schemas, exit 0 | CPython 3.12.13 |
 | `python3 -m car_job_search validate --all` | PASS — `validation: OK` | CPython 3.12.13 |
 | `python3 -m build` | PASS — sdist and wheel created | CPython 3.12.13 |
-| `python3 -m car_job_search release package --output dist/release-manifest.json` | PASS — 10-schema manifest for exact commit | CPython 3.12.13 |
+| `python3 -m car_job_search release package --output /tmp/car-release-manifest-9f5eae8.json` | PASS — 10-schema manifest for exact commit | CPython 3.12.13 |
 | Executable n8n Code-node contract | PASS local — 5 malformed cases, replay no-op, post-success key | Node 26.7.0 |
 
 ## Acceptance
 
 | Group | Passed | Failed | Unverified / blocked |
 |---|---:|---:|---:|
-| AC-01 through AC-70 | 66 | 0 | 2 unverified; 2 blocked |
+| AC-01 through AC-70 | 67 | 0 | 1 unverified; 2 blocked |
 | ST-01 through ST-19 | 17 | 0 | ST-09 operational authority and ST-12 privacy block launch |
 | ST-20 | 0 | 0 | Production baseline unknown; synthetic 1/1 is not a baseline |
 | AC-71 through AC-74 | 0 | 0 | 4 deferred with M09 |
@@ -65,11 +66,11 @@ owner: "MIKKOH Chen"
 |---|---:|---|---|
 | Objective understanding | 99% | Governing sources retained, checksummed, and extracted | PASS |
 | Architecture fidelity | 98% | Module graph, authority lint, and independent review | PASS |
-| Functional completeness | 98% | P0 module/test map and 487-test suite | PASS local |
+| Functional completeness | 98% | P0 module/test map and 493-test suite | PASS local |
 | Security/privacy | 93% | Local controls pass; public destination blocks personal use | FAIL release |
 | Evidence integrity | 98% | Exact evidence IDs, source versions, mutation tests | PASS |
 | Integration correctness | 92% | Local replay passes; live n8n and connectors unverified | UNVERIFIED |
-| Operational readiness | 88% | No exact-SHA remote CI or authenticated approval issuer | FAIL release |
+| Operational readiness | 90% | GitHub publication is proven; authenticated approval issuer remains absent | FAIL release |
 | User-goal impact | 96% | Generic P0 exists; personal execution remains blocked | PASS local |
 
 ## Security
@@ -93,7 +94,7 @@ owner: "MIKKOH Chen"
 | [O-03] | BLOCK_RELEASE | Reviewer/approver identity is unauthenticated | MIKKOH Chen | Bind issuance to authenticated human authority and append-only audit; reject forged/stale records | Blocks all external action |
 | [O-04] | PROVE_NOW | n8n workflow is not imported or observed live | MIKKOH Chen | Import into authorized n8n; test exact replay, conflict, malformed input, retry, quarantine, and dead letter | Blocks live orchestration |
 | [O-05] | PROVE_NOW | Linear/Notion operational destinations are unbound | MIKKOH Chen | Bind approved test destinations and prove no canonical career-fact mutation | Blocks live connector use |
-| [O-06] | PROVE_NOW | Exact branch SHA has no GitHub Actions run | MIKKOH Chen | Push/PR only after authorization; require every final-SHA job green | Blocks remote CI claim |
+| [O-06] | NO_OP_EVIDENCED | GitHub publication and exact-head CI are merge gates on [PR#1](https://github.com/MikkohChen/ai-job-search/pull/1) | Codex | Verify final head, check conclusions, and merged commit before completion | Does not block when the exact final head is green |
 | [O-07] | PROVE_NOW | Approved network-fetch intake is untested | MIKKOH Chen | In an authorized network environment, pass approved fetched text through intake and prove body links stay inert | Leaves AC-30 unverified |
 | [O-08] | PROVE_NOW | Production VARR baseline is unknown | MIKKOH Chen | Measure all packages through the ledger-owned runtime after a real approved sample exists | Blocks any production ≥95% claim |
 

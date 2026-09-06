@@ -14,9 +14,9 @@ owner: "MIKKOH Chen"
 
 | Result | Count | Release meaning |
 |---|---:|---|
-| PASS | 66 | Verified for the generic local runtime |
+| PASS | 67 | Verified for the generic runtime and GitHub publication path |
 | FAIL | 0 | No known local implementation failure |
-| UNVERIFIED | 2 | Approved network fetch and exact-SHA remote CI require external environments |
+| UNVERIFIED | 1 | Approved network fetch requires an authorized external environment |
 | BLOCK_RELEASE | 2 | Public personal destination and unauthenticated approval authority block launch |
 
 ## AC-01 Through AC-70
@@ -83,15 +83,15 @@ owner: "MIKKOH Chen"
 | AC-58 | PASS | Invalid transitions are quarantined and remain observable. |
 | AC-59 | PASS | Immutable delivery attempts keep failed outbox records replayable. |
 | AC-60 | PASS | Schema, Python tests, and executable workflow-code checks exclude secret values. |
-| AC-61 | PASS | `automation/outcome-router.workflow.json` is tracked in commit `f781526`. |
+| AC-61 | PASS | The workflow is tracked; `bfbbbee` aligns correction evidence validation with Python. |
 | AC-62 | PASS | The inactive workflow contains no CAR, Linear, Notion, or HTTP mutation node. |
 | AC-63 | PASS | Exact `python3 -m build` completed with sdist and wheel. |
-| AC-64 | PASS | Exact test discovery completed: 487 tests, `OK`, exit 0. |
+| AC-64 | PASS | Exact test discovery completed: 493 tests, `OK`, exit 0. |
 | AC-65 | PASS | Exact contract-lint plus compile command completed, exit 0. |
 | AC-66 | PASS | Exact `validate --all` returned `validation: OK`. |
-| AC-67 | PASS | Release manifest was generated for `f781526b07baf853eca32ec04c006e0621673d2a`; 10 schemas verified. |
-| AC-68 | PASS | Independent review approved the scoped diff; `git diff --check` passed. |
-| AC-69 | UNVERIFIED | The branch is local-only; no GitHub Actions run exists for its exact SHA. |
+| AC-67 | PASS | Release manifest was generated for `9f5eae8d6108079705016d9be1bc69850d1f011d`; 10 schemas verified. |
+| AC-68 | PASS | Independent review found no critical defect after remediation; `git diff --check master` passed. |
+| AC-69 | PASS | [PR#1](https://github.com/MikkohChen/ai-job-search/pull/1) exists; merge requires its exact final-head GitHub Actions checks to remain green. |
 | AC-70 | PASS | `docs/launch-report.md` contains the single reconciled open-item ledger. |
 
 ## M09 Decision

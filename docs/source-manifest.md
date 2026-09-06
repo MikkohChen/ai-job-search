@@ -26,7 +26,7 @@ owner: "MIKKOH Chen"
 |---|---|
 | Worktree | `/Users/mikkohchen/Developer/mkkh-labs/ai-job-search-car-p0` |
 | Branch | `codex/car-ai-job-search-p0` |
-| P0 code commit | `f781526b07baf853eca32ec04c006e0621673d2a` |
+| P0 code commit | `9f5eae8d6108079705016d9be1bc69850d1f011d` |
 | Origin | `MikkohChen/ai-job-search` — `PUBLIC` |
 | Origin default branch | `master` |
 

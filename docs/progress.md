@@ -17,7 +17,7 @@ owner: "MIKKOH Chen"
 | Phase | DELIVER |
 | Current module | P0 acceptance complete; operational launch blocked |
 | Current branch/worktree | `codex/car-ai-job-search-p0` / `/Users/mikkohchen/Developer/mkkh-labs/ai-job-search-car-p0` |
-| Last green code commit | `f781526b07baf853eca32ec04c006e0621673d2a` |
+| Last green code commit | `9f5eae8d6108079705016d9be1bc69850d1f011d` |
 | Overall status | Generic P0 implementation complete; personal deployment `NO-GO` |
 
 ## Completed
@@ -30,6 +30,7 @@ owner: "MIKKOH Chen"
 | M06 Application + M07 Review + M08 Approval | `43c8400` | 62 focused; 424 full-suite; contract lint; independent review | PASS |
 | M10 Outcomes + validation/release CLI | `6e10f48` | 48 focused; 458 full-suite; contract lint; independent review | PASS |
 | CI + VARR + inactive n8n contract | `f781526` | 57 focused; 487 full-suite; build/lint/validate; independent review | PASS local |
+| Review hardening | `9f5eae8` | 54 focused; 493 full-suite; contract/security/diff gates | PASS local |
 
 ## Current Failure
 
@@ -62,7 +63,7 @@ owner: "MIKKOH Chen"
 | RUL-006 | M05 verifies exact normalized claims only at P0 | Deterministic code cannot safely infer semantic paraphrase equivalence | Safe paraphrases require a separately reviewed evidence-preserving adapter |
 | RUL-007 | M05 uses a fixed confidence threshold of 80 and a three-argument resolver surface | The execution plan fixes the API and SPEC fixes the critical confidence boundary | A new policy version is required to change the threshold |
 | RUL-008 | P0 ATS readability means at least 80 visible ASCII alphanumeric characters per Markdown artifact | The governing documents require an objective extraction gate but specify no numeric threshold | Non-Latin or shorter valid artifacts require a policy-version change |
-| RUL-009 | Projection-approved modules are CAR-approved copy, separately bound from candidate evidence claims | SPEC supplies approved modules and resolved claims as distinct M06 inputs | Module prose is trusted only while its projection checksum and rendered copy remain exact |
+| RUL-009 | Projection-approved module copy must exact-match a verified claim and remain in the package claim ledger | SPEC requires every factual candidate statement to be evidence-backed | Free-form approved prose is rejected rather than trusted by checksum alone |
 | RUL-010 | Blocking review findings are corrected only through immutable N+1 revision and fresh review | Same-version status replacement permits review-history bypasses | Corrections create additional package snapshots |
 | RUL-011 | Package checksum binds content, review state, and ordered review history | Approval must fail after artifact or review metadata changes | Every review transition changes the package checksum |
 | RUL-012 | Null approval expiry is permitted for P0 verification | ApprovalRecord explicitly specifies `expires_at/null` | Operational policy may later require a finite TTL |
@@ -100,3 +101,5 @@ Move the personal runtime to a confirmed private repository and bind authenticat
 | `python3 tools/lint_contracts.py && python3 -m compileall -q src tests` | PASS — 9 schemas, exit 0 |
 | `python3 -m build` | PASS — sdist and wheel created |
 | `python3 -m car_job_search release package --output dist/release-manifest.json` | PASS — exact `f781526` manifest, 10 schemas |
+| Final review-hardening suite | PASS — 493 tests, `OK`, exit 0 at `9f5eae8` |
+| Release manifest after review hardening | PASS — exact `9f5eae8` manifest, 10 schemas |
